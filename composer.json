@@ -1,0 +1,40 @@
+{
+    "name": "ussoccerfederation/ussf-auth-sdk-php",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "USSoccerFederation\\UssfAuthSdkPhp\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Katherine Sterling",
+            "email": "KatherineSterling@ussoccer.org"
+        }
+    ],
+    "require-dev": {
+        "symfony/var-dumper": "^7.2",
+        "pestphp/pest": "^3.7",
+        "mockery/mockery": "^1.6"
+    },
+    "require": {
+        "php": "8.*",
+        "auth0/auth0-php": "^8.13",
+        "vlucas/phpdotenv": "^5.6",
+        "php-http/discovery": "^1.20",
+        "guzzlehttp/guzzle": "^7.9",
+        "guzzlehttp/psr7": "^2.7",
+        "http-interop/http-factory-guzzle": "^1.2"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        }
+    }
+}
