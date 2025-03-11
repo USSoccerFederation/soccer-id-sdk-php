@@ -1,10 +1,10 @@
 <?php
 
 use Auth0\SDK\Contract\Auth0Interface;
-use USSoccerFederation\UssfAuthSdkPhp\Auth0Configuration;
-use USSoccerFederation\UssfAuthSdkPhp\Auth0Session;
+use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Configuration;
+use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Session;
+use USSoccerFederation\UssfAuthSdkPhp\Auth\UssfAuth;
 use USSoccerFederation\UssfAuthSdkPhp\Logging\StdoutLogger;
-use USSoccerFederation\UssfAuthSdkPhp\UssfAuth;
 
 test('can callback', function () {
     $auth0Mock = Mockery::mock(Auth0Interface::class)->makePartial();

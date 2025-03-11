@@ -4,9 +4,9 @@
  * Just a simple place to dump reused logic on example scripts.
  */
 
-use USSoccerFederation\UssfAuthSdkPhp\Auth0Configuration;
+use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Configuration;
+use USSoccerFederation\UssfAuthSdkPhp\Auth\UssfAuth;
 use USSoccerFederation\UssfAuthSdkPhp\Logging\StdoutLogger;
-use USSoccerFederation\UssfAuthSdkPhp\UssfAuth;
 
 require_once "../vendor/autoload.php";
 $envPath = __DIR__ . '/../';

@@ -1,6 +1,6 @@
 <?php
 
-namespace USSoccerFederation\UssfAuthSdkPhp;
+namespace USSoccerFederation\UssfAuthSdkPhp\Auth;
 
 class Auth0Configuration
 {

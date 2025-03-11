@@ -1,12 +1,16 @@
 <?php
 
-namespace USSoccerFederation\UssfAuthSdkPhp;
+namespace USSoccerFederation\UssfAuthSdkPhp\Auth;
 
 use Auth0\SDK\Auth0;
 use Auth0\SDK\Contract\Auth0Interface;
+use Closure;
+use Http\Discovery\Psr17FactoryDiscovery;
+use Http\Discovery\Psr18ClientDiscovery;
 use JetBrains\PhpStorm\NoReturn;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use USSoccerFederation\UssfAuthSdkPhp\Helpers\Path\Path;
 
 
 class UssfAuth
@@ -17,11 +21,18 @@ class UssfAuth
         protected ?LoggerInterface $logger = null,
     ) {
         if ($this->auth0 === null) {
+            $httpClient = Psr18ClientDiscovery::find();
+            $requestFactory = Psr17FactoryDiscovery::findRequestFactory();
+            $streamFactory = Psr17FactoryDiscovery::findStreamFactory();
+
             $this->auth0 = new Auth0([
                 'domain' => $auth0Configuration->domain,
                 'clientId' => $auth0Configuration->clientId,
                 'clientSecret' => $auth0Configuration->clientSecret,
                 'cookieSecret' => $auth0Configuration->cookieSecret,
+                'httpClient' => $httpClient,
+                'httpRequestFactory' => $requestFactory,
+                'httpStreamFactory' => $streamFactory,
             ]);
         }
 
@@ -39,6 +50,11 @@ class UssfAuth
         return $this->getHttpSchema() . '://' . $_SERVER['HTTP_HOST'];
     }
 
+    protected function getCallbackRoute(): string
+    {
+        return (new Path($this->getBaseUrl()))->join($this->auth0Configuration->callbackRoute);
+    }
+
     protected function getHttpSchema(): string
     {
         return (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http');
@@ -48,20 +64,24 @@ class UssfAuth
     public function login(): void
     {
         $this->auth0->clear();
-        $url = $this->auth0->login("{$this->getBaseUrl()}/{$this->auth0Configuration->callbackRoute}");
+        $url = $this->auth0->login($this->getCallbackRoute());
         header("Location: {$url}");
         exit();
     }
 
-    public function logout(): void
+    public function logout(?string $returnUrl): void
     {
-        // todo
+        if ($returnUrl === null) {
+            $returnUrl = $this->getCallbackRoute();
+        }
+
+        header("Location: " . $this->auth0->logout($returnUrl));
     }
 
     public function callback(): Auth0Session
     {
         try {
-            $this->auth0->exchange("{$this->getBaseUrl()}/{$this->auth0Configuration->callbackRoute}");
+            $this->auth0->exchange($this->getCallbackRoute());
         } catch (\Throwable $e) {
             $this->logger->error($e);
             $this->login();
@@ -78,6 +98,15 @@ class UssfAuth
 
     protected function needsSync(object $session): bool
     {
-        return true; // todo: implement me
+        // todo: implement me
+        // Check last synced timestamp
+        return true;
+    }
+
+    public function syncProfile(Auth0Session $session, Closure $closure): void
+    {
+        if (!($this->needsSync($session))) {
+            return;
+        }
     }
 }
