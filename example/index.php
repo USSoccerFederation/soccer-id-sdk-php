@@ -12,5 +12,4 @@ include 'init.php';
  * to your configured callback endpoint for a code exchange.
  */
 
-$auth = getAuthInstance();
-$auth->login();
+getUssfAuth()->login();

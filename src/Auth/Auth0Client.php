@@ -4,16 +4,20 @@ namespace USSoccerFederation\UssfAuthSdkPhp\Auth;
 
 use Auth0\SDK\Auth0;
 use Auth0\SDK\Contract\Auth0Interface;
-use Closure;
 use Http\Discovery\Psr17FactoryDiscovery;
 use Http\Discovery\Psr18ClientDiscovery;
 use JetBrains\PhpStorm\NoReturn;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use USSoccerFederation\UssfAuthSdkPhp\Helpers\Path\Path;
+use RuntimeException;
+use USSoccerFederation\UssfAuthSdkPhp\Helpers\Http;
+use USSoccerFederation\UssfAuthSdkPhp\Helpers\Path;
 
 
-class UssfAuth
+/**
+ * Wraps Auth0. Used to simplify authentication against USSF tenant.
+ */
+class Auth0Client
 {
     public function __construct(
         protected Auth0Configuration $auth0Configuration,
@@ -47,7 +51,12 @@ class UssfAuth
             return $this->auth0Configuration->baseUrl;
         }
 
-        return $this->getHttpSchema() . '://' . $_SERVER['HTTP_HOST'];
+        $url = Http::determineHttpHost();
+        if ($url !== null) {
+            return $url;
+        }
+
+        throw new RuntimeException('Unable to determine base URL.');
     }
 
     protected function getCallbackRoute(): string
@@ -55,10 +64,6 @@ class UssfAuth
         return (new Path($this->getBaseUrl()))->join($this->auth0Configuration->callbackRoute);
     }
 
-    protected function getHttpSchema(): string
-    {
-        return (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http');
-    }
 
     #[NoReturn]
     public function login(): void
@@ -69,13 +74,15 @@ class UssfAuth
         exit();
     }
 
+    #[NoReturn]
     public function logout(?string $returnUrl): void
     {
         if ($returnUrl === null) {
             $returnUrl = $this->getCallbackRoute();
         }
 
-        header("Location: " . $this->auth0->logout($returnUrl));
+        header("Location: {$this->auth0->logout($returnUrl)}");
+        exit();
     }
 
     public function callback(): Auth0Session
@@ -94,19 +101,5 @@ class UssfAuth
         }
 
         return Auth0Session::fromStdObject($creds);
-    }
-
-    protected function needsSync(object $session): bool
-    {
-        // todo: implement me
-        // Check last synced timestamp
-        return true;
-    }
-
-    public function syncProfile(Auth0Session $session, Closure $closure): void
-    {
-        if (!($this->needsSync($session))) {
-            return;
-        }
     }
 }

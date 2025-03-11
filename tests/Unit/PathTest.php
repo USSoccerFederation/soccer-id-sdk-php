@@ -1,7 +1,7 @@
 <?php
 
 
-use USSoccerFederation\UssfAuthSdkPhp\Helpers\Path\Path;
+use USSoccerFederation\UssfAuthSdkPhp\Helpers\Path;
 
 test('can join paths', function () {
     $path = (new Path('http://localhost:8080'))

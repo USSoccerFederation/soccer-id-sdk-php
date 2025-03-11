@@ -2,6 +2,8 @@
 
 namespace USSoccerFederation\UssfAuthSdkPhp\Auth;
 
+use InvalidArgumentException;
+
 class Auth0Configuration
 {
     public function __construct(
@@ -17,12 +19,22 @@ class Auth0Configuration
     public static function fromEnv(): self
     {
         return new self(
-            domain: $_ENV['USSF_AUTH0_DOMAIN'],
-            clientId: $_ENV['USSF_AUTH0_CLIENT_ID'],
-            clientSecret: $_ENV['USSF_AUTH0_CLIENT_SECRET'],
-            cookieSecret: $_ENV['USSF_AUTH0_COOKIE_SECRET'],
-            baseUrl: $_ENV['USSF_AUTH0_BASE_URL'],
-            callbackRoute: $_ENV['USSF_AUTH0_CALLBACK_ROUTE'],
+            domain: $_ENV['USSF_AUTH0_DOMAIN'] ?? throw new InvalidArgumentException(
+            'Missing USSF_AUTH0_DOMAIN from ENV'
+        ),
+            clientId: $_ENV['USSF_AUTH0_CLIENT_ID'] ?? throw new InvalidArgumentException(
+            'Missing USSF_AUTH0_CLIENT_ID from ENV'
+        ),
+            clientSecret: $_ENV['USSF_AUTH0_CLIENT_SECRET'] ?? throw new InvalidArgumentException(
+            'Missing USSF_AUTH0_CLIENT_SECRET from ENV'
+        ),
+            cookieSecret: $_ENV['USSF_AUTH0_COOKIE_SECRET'] ?? throw new InvalidArgumentException(
+            'Missing USSF_AUTH0_COOKIE_SECRET from ENV'
+        ),
+            baseUrl: $_ENV['USSF_AUTH0_BASE_URL'] ?? '',
+            callbackRoute: $_ENV['USSF_AUTH0_CALLBACK_ROUTE'] ?? throw new InvalidArgumentException(
+            'Missing USSF_AUTH0_CALLBACK_ROUTE from ENV'
+        ),
         );
     }
 }

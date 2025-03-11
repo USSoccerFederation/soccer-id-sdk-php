@@ -3,7 +3,7 @@
 use Auth0\SDK\Contract\Auth0Interface;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Configuration;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Session;
-use USSoccerFederation\UssfAuthSdkPhp\Auth\UssfAuth;
+use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Client;
 use USSoccerFederation\UssfAuthSdkPhp\Logging\StdoutLogger;
 
 test('can callback', function () {
@@ -43,7 +43,7 @@ test('can callback', function () {
 
     $logger = new StdoutLogger();
     $conf = new Auth0Configuration('', '', '', '', 'http://127.0.0.1:8000');
-    $ussfAuth = new UssfAuth($conf, $auth0Mock, $logger);
+    $ussfAuth = new Auth0Client($conf, $auth0Mock, $logger);
     $session = $ussfAuth->callback();
 
     expect($session)->toBeInstanceOf(Auth0Session::class);

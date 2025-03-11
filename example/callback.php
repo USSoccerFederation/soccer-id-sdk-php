@@ -1,5 +1,7 @@
 <?php
 
+use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Session;
+
 require_once "../vendor/autoload.php";
 include 'init.php';
 
@@ -14,7 +16,10 @@ include 'init.php';
  * - Set any cookies/session needed to keep the user logged into your app
  */
 
-$auth = getAuthInstance();
-$session = $auth->callback();
-
-dump($session);
+$session = getUssfAuth()->callback(function (Auth0Session $session, ?object $profile) {
+    // $session will contain information related to Auth0, such as name, email, access token, etc.
+    // $profile will contain additional information about the user. Data shape is configurable.
+    //
+    // This is where you can sync the user's info with your database.
+    dump($session, $profile);
+});

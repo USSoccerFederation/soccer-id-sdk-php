@@ -3,8 +3,13 @@
 namespace USSoccerFederation\UssfAuthSdkPhp\Identity;
 
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\ApiException;
-use USSoccerFederation\UssfAuthSdkPhp\Helpers\Path\Path;
+use USSoccerFederation\UssfAuthSdkPhp\Helpers\Path;
 
+/**
+ * Used to interact with USSF's Identity Service API.
+ * This can be used to, for example, pull the latest profile information
+ * for the authenticated user.
+ */
 class IdentityClient
 {
     const BASE_API_URL = 'https://api.ussoccer.org/api/identity/profile';
@@ -14,8 +19,20 @@ class IdentityClient
     {
     }
 
+    /**
+     * Grabs the user's latest profile data from the Identity Service.
+     * This should typically be called after a successful Auth0 callback.
+     *
+     * @param string $auth0AccessToken AT can be taken from `Auth0Session` after successful callback
+     * @return object|null Data shape depends on partner configuration.
+     * @throws \JsonException
+     * @throws \Psr\Http\Client\ClientExceptionInterface
+     */
     public function getProfile(string $auth0AccessToken): ?object
     {
+        return (object)[
+            'hello' => 'world',
+        ];
         $uri = (new Path($this->configuration->baseUrl))
             ->join(static::PROFILE_ROUTE)
             ->join($auth0AccessToken)

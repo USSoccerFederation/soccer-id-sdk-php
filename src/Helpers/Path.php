@@ -1,6 +1,6 @@
 <?php
 
-namespace USSoccerFederation\UssfAuthSdkPhp\Helpers\Path;
+namespace USSoccerFederation\UssfAuthSdkPhp\Helpers;
 
 /**
  * A stupidly-simple class to aid with building paths.
