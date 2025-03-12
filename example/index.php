@@ -10,6 +10,8 @@ include 'init.php';
  *
  * Once they have completed the auth challenge, they will be directed
  * to your configured callback endpoint for a code exchange.
+ *
+ * You should call this when the user chooses to log in via USSF Auth.
  */
 
 getUssfAuth()->login();

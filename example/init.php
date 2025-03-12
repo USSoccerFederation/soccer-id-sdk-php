@@ -24,18 +24,21 @@ if (file_exists("{$envPath}/.env")) {
  * ```
  */
 
-/*
- * Just an example of how you would bootstrap UssfAuth.
- * In Laravel, you would place this into a Service Provider.
- * You might also put this into a composer autoload.
- */
-
 function getUssfAuth(): UssfAuth
 {
     static $instance = null;
     if ($instance === null) {
+        /*
+         * Just an example of how you would bootstrap UssfAuth.
+         * In Laravel, you would place this into a Service Provider.
+         * You might also put this into a composer autoload.
+         */
         $instance = new UssfAuth(
-            auth0: new Auth0Client(Auth0Configuration::fromEnv(), null, new StdoutLogger()),
+            auth0: new Auth0Client(
+                auth0Configuration: Auth0Configuration::fromEnv(), // Load from environment variables
+                auth0: null, // Can specify our own Auth0 instance; leave `null` to create from `auth0Configuration`
+                logger: new StdoutLogger(), // Can specify your own PSR/log-compatible logger, such as Monolog
+            ),
             identity: new IdentityClient(new IdentityClientConfiguration()),
         );
     }

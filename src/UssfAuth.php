@@ -6,12 +6,15 @@ use Closure;
 use JetBrains\PhpStorm\NoReturn;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Client;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Session;
+use USSoccerFederation\UssfAuthSdkPhp\Exceptions\ApiException;
 use USSoccerFederation\UssfAuthSdkPhp\Identity\IdentityClient;
 
 class UssfAuth
 {
-    public function __construct(protected Auth0Client $auth0, protected IdentityClient $identity)
-    {
+    public function __construct(
+        protected Auth0Client $auth0,
+        protected IdentityClient $identity
+    ) {
     }
 
     #[NoReturn]
@@ -31,9 +34,18 @@ class UssfAuth
 
         if ($callback !== null) {
             $profile = $this->identity->getProfile($session->accessToken);
-            $callback($session, $profile);
+            $updates = $callback($session, $profile);
+        }
+
+        if (is_array($updates) || is_object($updates)) {
+            $this->identity->updateProfile($session->accessToken, $updates);
         }
 
         return $session;
+    }
+
+    public function identity(): IdentityClient
+    {
+        return $this->identity;
     }
 }
