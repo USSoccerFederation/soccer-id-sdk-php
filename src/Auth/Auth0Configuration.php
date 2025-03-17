@@ -31,7 +31,7 @@ class Auth0Configuration
             cookieSecret: $_ENV['USSF_AUTH0_COOKIE_SECRET'] ?? throw new InvalidArgumentException(
             'Missing USSF_AUTH0_COOKIE_SECRET from ENV'
         ),
-            baseUrl: $_ENV['USSF_AUTH0_BASE_URL'] ?? '',
+            baseUrl: $_ENV['APP_URL'] ?? '',
             callbackRoute: $_ENV['USSF_AUTH0_CALLBACK_ROUTE'] ?? throw new InvalidArgumentException(
             'Missing USSF_AUTH0_CALLBACK_ROUTE from ENV'
         ),
