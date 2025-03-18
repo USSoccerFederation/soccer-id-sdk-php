@@ -1,4 +1,4 @@
-# U.S. Soccer Federation Partner Authentication SDK
+# Soccer ID - U.S. Soccer Federation Partner Authentication SDK
 
 ![Packagist License](https://img.shields.io/packagist/l/USSoccerFederation/soccer-id-sdk-php?label=License)
 ![Unit tests](https://img.shields.io/github/check-runs/USSoccerFederation/soccer-id-sdk-php/main?label=Tests)
