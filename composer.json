@@ -1,6 +1,6 @@
 {
   "name": "ussoccerfederation/soccer-id-sdk-php",
-  "description": "A minimalist SDK to connect a PHP app to",
+  "description": "A minimalist SDK to connect a PHP app to USSF's Auth0",
   "type": "library",
   "license": "MIT",
   "autoload": {

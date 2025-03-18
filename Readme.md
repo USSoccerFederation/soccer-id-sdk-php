@@ -67,7 +67,7 @@ sequenceDiagram
 Install the SDK:
 
 ```sh
-composer install ussoccerfederation/soccer-id-sdk-php
+composer require ussoccerfederation/soccer-id-sdk-php
 ```
 
 Install a PSR-18 HTTP client _if you don't already have one_:
