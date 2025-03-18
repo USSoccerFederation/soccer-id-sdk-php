@@ -1,0 +1,45 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  TZ: Etc/UTC
+
+
+jobs:
+  # Ensure unit tests pass
+  test:
+    name: Run tests
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get upgrade -y
+          sudo apt-get install -y php-cli php-pear php-dev
+
+          sudo apt-get install -y php-mbstring \
+            php-intl
+
+          curl -sS https://getcomposer.org/installer | php
+          sudo mv composer.phar /usr/local/bin/composer
+
+          composer install
+
+      - name: Run tests
+        run: |
+          ./vendor/bin/pest --testdox-text test-results.txt
+
+      - name: Upload test results as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pest-test-results
+          path: test-results.txt
