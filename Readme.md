@@ -1,8 +1,8 @@
 # U.S. Soccer Federation Partner Authentication SDK
 
-![Packagist License](https://img.shields.io/packagist/l/USSoccerFederation/ussf-auth-sdk-php?label=License)
-![Unit tests](https://img.shields.io/github/check-runs/USSoccerFederation/ussf-auth-sdk-php/main?label=Tests)
-![Packagist Version](https://img.shields.io/packagist/v/USSoccerFederation/ussf-auth-sdk-php?label=Version)
+![Packagist License](https://img.shields.io/packagist/l/USSoccerFederation/soccer-id-sdk-php?label=License)
+![Unit tests](https://img.shields.io/github/check-runs/USSoccerFederation/soccer-id-sdk-php/main?label=Tests)
+![Packagist Version](https://img.shields.io/packagist/v/USSoccerFederation/soccer-id-sdk-php?label=Version)
 
 
 ## Requirements
@@ -67,7 +67,7 @@ sequenceDiagram
 Install the SDK:
 
 ```sh
-composer install ussoccerfederation/ussf-auth-sdk-php
+composer install ussoccerfederation/soccer-id-sdk-php
 ```
 
 Install a PSR-18 HTTP client _if you don't already have one_:
