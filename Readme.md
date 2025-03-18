@@ -1,5 +1,10 @@
 # U.S. Soccer Federation Partner Authentication SDK
 
+![Packagist License](https://img.shields.io/packagist/l/USSoccerFederation/ussf-auth-sdk-php?label=License)
+![Unit tests](https://img.shields.io/github/check-runs/USSoccerFederation/ussf-auth-sdk-php/main?label=Tests)
+![Packagist Version](https://img.shields.io/packagist/v/USSoccerFederation/ussf-auth-sdk-php?label=Version)
+
+
 ## Requirements
 
 - PHP 8+
