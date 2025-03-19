@@ -10,6 +10,7 @@
 - PHP 8+
 - Any PSR-18 compatible HTTP client, such as Guzzle
 - Client ID & Secret from USSF
+- An agreed-upon callback URL
 
 ## How it works
 
