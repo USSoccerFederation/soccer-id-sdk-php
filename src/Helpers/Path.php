@@ -56,13 +56,13 @@ class Path
         return new static($this->base, $this->separator);
     }
 
-    public function toString(): string
-    {
-        return $this->base;
-    }
-
     public function __toString(): string
     {
         return $this->toString();
+    }
+
+    public function toString(): string
+    {
+        return $this->base;
     }
 }

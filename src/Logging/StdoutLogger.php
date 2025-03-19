@@ -9,14 +9,19 @@ class StdoutLogger implements LoggerInterface
 {
     private const LOG_LEVELS = [
         LogLevel::EMERGENCY => 'EMERGENCY',
-        LogLevel::ALERT     => 'ALERT',
-        LogLevel::CRITICAL  => 'CRITICAL',
-        LogLevel::ERROR     => 'ERROR',
-        LogLevel::WARNING   => 'WARNING',
-        LogLevel::NOTICE    => 'NOTICE',
-        LogLevel::INFO      => 'INFO',
-        LogLevel::DEBUG     => 'DEBUG',
+        LogLevel::ALERT => 'ALERT',
+        LogLevel::CRITICAL => 'CRITICAL',
+        LogLevel::ERROR => 'ERROR',
+        LogLevel::WARNING => 'WARNING',
+        LogLevel::NOTICE => 'NOTICE',
+        LogLevel::INFO => 'INFO',
+        LogLevel::DEBUG => 'DEBUG',
     ];
+
+    public function emergency($message, array $context = []): void
+    {
+        $this->log(LogLevel::EMERGENCY, $message, $context);
+    }
 
     public function log($level, $message, array $context = []): void
     {
@@ -25,11 +30,6 @@ class StdoutLogger implements LoggerInterface
         $contextString = json_encode($context);
 
         echo sprintf("[%s] %s: %s %s\n", $timestamp, $levelName, $message, $contextString);
-    }
-
-    public function emergency($message, array $context = []): void
-    {
-        $this->log(LogLevel::EMERGENCY, $message, $context);
     }
 
     public function alert($message, array $context = []): void

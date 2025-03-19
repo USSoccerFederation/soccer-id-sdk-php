@@ -2,15 +2,8 @@
 
 namespace USSoccerFederation\UssfAuthSdkPhp\Helpers;
 
-use RuntimeException;
-
 class Http
 {
-    protected static function getHttpSchema(): string
-    {
-        return (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http');
-    }
-
     public static function determineHttpHost(): ?string
     {
         $schema = static::getHttpSchema();
@@ -33,5 +26,10 @@ class Http
         }
 
         return null;
+    }
+
+    protected static function getHttpSchema(): string
+    {
+        return (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http');
     }
 }

@@ -32,6 +32,32 @@ class IdentityClient
     }
 
     /**
+     * Grabs the user's latest profile data from the Identity Service.
+     * This should typically be called after a successful Auth0 callback.
+     *
+     * @param string $auth0AccessToken AT can be taken from `Auth0Session` after successful callback
+     * @return object|null Data shape depends on partner configuration.
+     * @throws JsonException|ClientExceptionInterface
+     */
+    public function getProfile(string $auth0AccessToken): ?object
+    {
+        $uri = (new Path($this->configuration->baseUrl))
+            ->join(static::PROFILE_ROUTE)
+            ->toString();
+
+        $headers = array_merge($this->getBaseHeaders(), ['Authorization' => "Bearer {$auth0AccessToken}"]);
+        $response = $this->sendRequest('GET', $uri, $headers);
+
+        $decoded = json_decode(
+            json: $response->getBody()->getContents(),
+            associative: false,
+            flags: JSON_THROW_ON_ERROR
+        );
+
+        return $decoded->data ?? null;
+    }
+
+    /**
      * Returns the basic headers expected to be on every request
      *
      * @return string[]
@@ -42,30 +68,6 @@ class IdentityClient
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
         ];
-    }
-
-    protected function createRequest(
-        string $method,
-        string $uri,
-        array $headers = [],
-        string $body = ''
-    ): RequestInterface {
-        static $streamFactory = null;
-        if ($streamFactory === null) {
-            $streamFactory = Psr17FactoryDiscovery::findStreamFactory();
-        }
-
-        $request = $this->configuration->requestFactory->createRequest($method, $uri);
-
-        foreach ($headers as $header => $value) {
-            $request = $request->withHeader($header, $value);
-        };
-
-        if ($body !== '') {
-            $request->withBody($streamFactory->createStream($body));
-        }
-
-        return $request;
     }
 
     /**
@@ -92,30 +94,28 @@ class IdentityClient
         return $response;
     }
 
-    /**
-     * Grabs the user's latest profile data from the Identity Service.
-     * This should typically be called after a successful Auth0 callback.
-     *
-     * @param string $auth0AccessToken AT can be taken from `Auth0Session` after successful callback
-     * @return object|null Data shape depends on partner configuration.
-     * @throws JsonException|ClientExceptionInterface
-     */
-    public function getProfile(string $auth0AccessToken): ?object
-    {
-        $uri = (new Path($this->configuration->baseUrl))
-            ->join(static::PROFILE_ROUTE)
-            ->toString();
+    protected function createRequest(
+        string $method,
+        string $uri,
+        array $headers = [],
+        string $body = ''
+    ): RequestInterface {
+        static $streamFactory = null;
+        if ($streamFactory === null) {
+            $streamFactory = Psr17FactoryDiscovery::findStreamFactory();
+        }
 
-        $headers = array_merge($this->getBaseHeaders(), ['Authorization' => "Bearer {$auth0AccessToken}"]);
-        $response = $this->sendRequest('GET', $uri, $headers);
+        $request = $this->configuration->requestFactory->createRequest($method, $uri);
 
-        $decoded = json_decode(
-            json: $response->getBody()->getContents(),
-            associative: false,
-            flags: JSON_THROW_ON_ERROR
-        );
+        foreach ($headers as $header => $value) {
+            $request = $request->withHeader($header, $value);
+        };
 
-        return $decoded->data ?? null;
+        if ($body !== '') {
+            $request->withBody($streamFactory->createStream($body));
+        }
+
+        return $request;
     }
 
     /**
