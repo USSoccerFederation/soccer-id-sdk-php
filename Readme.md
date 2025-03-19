@@ -4,7 +4,6 @@
 ![Unit tests](https://img.shields.io/github/check-runs/USSoccerFederation/soccer-id-sdk-php/main?label=Tests)
 ![Packagist Version](https://img.shields.io/packagist/v/USSoccerFederation/soccer-id-sdk-php?label=Version)
 
-
 ## Requirements
 
 - PHP 8+
@@ -100,6 +99,8 @@ APP_URL=
 USSF_AUTH0_CALLBACK_ROUTE=ussf_callback.php
 ```
 
+If you are using Laravel, please jump forward to [Laravel Integration](#Laravel-Integration)
+
 If you'd like to use `.env` files with your application and have not already included `phpdotenv`, do so now:
 
 ```shell
@@ -174,3 +175,127 @@ if( $user->logged_in_via_ussf ) {
 
 With everything in place, you should now be able to start your app and complete the full login/logout cycle using USSF
 Auth.
+
+## Laravel Integration
+
+Laravel allows you to access environment variables via the `env()` helper, however this is only considered valid while
+within the context of config files. Instead of accessing the environment variables directly when instantiating the
+`UssfAuth` instance, we'll need to create a config file. Create a new file: `config/soccerid.php`
+
+```php
+<?php
+
+return [
+    'auth0' => [
+        /* Get these from USSF */
+        'client_id' => env('USSF_AUTH0_CLIENT_ID'),
+        'client_secret' => env('USSF_AUTH0_CLIENT_SECRET'),
+        'domain' => env('USSF_AUTH0_DOMAIN'),
+
+        /* Use a long, random secret for cookie encryption */
+        'cookie_secret' => env('USSF_AUTH0_COOKIE_SECRET'),
+
+        /* The route that the user will be directed back to handle Auth0 code exchange and complete login */
+        'callback_route' => env('USSF_AUTH0_CALLBACK_ROUTE', '/ussf_callback.php'),
+    ],
+];
+```
+
+Next, we'll create a service provider to bind our `UssfAuth` instance. Create a new file:
+`Providers/SoccerIdServiceProvider.php`
+
+```php
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Foundation\Application;
+use Illuminate\Support\ServiceProvider;
+use Psr\Log\LoggerInterface;
+use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Client;
+use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Configuration;
+use USSoccerFederation\UssfAuthSdkPhp\Identity\IdentityClient;
+use USSoccerFederation\UssfAuthSdkPhp\Identity\IdentityClientConfiguration;
+use USSoccerFederation\UssfAuthSdkPhp\UssfAuth;
+
+class SoccerIdServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        //
+    }
+
+    public function boot(): void
+    {
+        $this->app->bind(Auth0Configuration::class, function () {
+            return new Auth0Configuration(
+                domain: config('soccerid.auth0.domain'),
+                clientId: config('soccerid.auth0.client_id'),
+                clientSecret: config('soccerid.auth0.client_secret'),
+                cookieSecret: config('soccerid.auth0.cookie_secret'),
+                callbackRoute: config('soccerid.auth0.callback_route'),
+            );
+        });
+
+        $this->app->bind(
+            UssfAuth::class,
+            function (Application $app) {
+                $configuration = $app->make(Auth0Configuration::class);
+                $logger = $app->make(LoggerInterface::class);
+
+                return new UssfAuth(
+                    auth0: new Auth0Client(
+                        auth0Configuration: $configuration,
+                        logger: $logger,
+                    ),
+                    identity: new IdentityClient(new IdentityClientConfiguration()),
+                );
+            }
+        );
+    }
+}
+```
+
+Remember to add the provider to boostrapping. For example, in Laravel 12, this is done by adding it to
+`bootstrap/providers.php`:
+
+```php
+<?php
+
+return [
+    App\Providers\AppServiceProvider::class,
+    App\Providers\SoccerIdServiceProvider::class, // Add this
+];
+```
+
+Finally, we need to hook up routing and serving. In the example below, we will do this the easy way. Add login, logout,
+and callback routes into `/routes/web.php`:
+
+```php
+Route::get('/login_ussf', function (UssfAuth $ussfAuth) {
+    $ussfAuth->login();
+});
+
+Route::get('/logout_ussf', function (UssfAuth $ussfAuth) {
+    session()->invalidate(); // Or whatever you need to log out a user from your app
+    $ussfAuth->logout('/');
+});
+
+Route::get(config('soccerid.auth0.callback_route'), function (UssfAuth $ussfAuth) {
+    $ussfAuth->callback(function (Auth0Session $session, ?object $profile) {
+        session()->put('logged_in', true); // Example only; do whatever you need to actually log the user into your app
+
+        // Update your database with information from the Auth0 session and/or USSF profile
+        // Example:
+        // ```php
+        // $userRepository->update(['name' => $session->user['name'], 'email' => $session->user['email']]);
+        // ```
+    });
+
+    redirect('/dashboard'); // Redirect user into the app. Don't keep them on callback!
+});
+```
+
+This is enough to test out functionality. Start your app and visit `/login_ussf` to give it a try. Once you're ready,
+move the core logic into a [Controller](https://laravel.com/docs/12.x/controllers#main-content) and configure your final
+[Routing](https://laravel.com/docs/12.x/routing#main-content).
