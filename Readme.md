@@ -11,6 +11,18 @@
 - Client ID & Secret from USSF
 - An agreed-upon callback URL
 
+## About
+
+Soccer ID is an initiative by the U.S. Soccer Federation to empower partner applications. This SDK simplifies the
+integration of third-party applications with USSF's identity provider (IdP), enabling seamless user authentication via
+USSF’s user pool.
+
+With this SDK, developers can quickly implement secure login functionality, allowing users of their applications to
+authenticate using their USSF credentials. It abstracts the complexities of identity federation, handling authentication
+flows, token validation, and user session management with minimal configuration. Whether you're building a membership
+portal, a fan engagement platform, or an internal team tool, this SDK streamlines the authentication process, ensuring a
+secure and consistent login experience.
+
 ## How it works
 
 Your application will complete the expected Auth0 login flow, then will interact with USSF's Identity Service to
