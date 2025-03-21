@@ -41,5 +41,8 @@
       "pestphp/pest-plugin": true,
       "php-http/discovery": true
     }
+  },
+  "scripts": {
+    "test": "vendor/bin/pest"
   }
 }

@@ -39,6 +39,7 @@ class Auth0Client
                 'httpClient' => $httpClient,
                 'httpRequestFactory' => $requestFactory,
                 'httpStreamFactory' => $streamFactory,
+                'redirectUri' => $auth0Configuration->redirectUri,
             ]);
         }
 
@@ -48,9 +49,17 @@ class Auth0Client
     }
 
     #[NoReturn]
-    public function logout(string $returnUrl = '/'): void
+    public function logout(?string $redirectUri = null): void
     {
-        header("Location: {$this->auth0->logout($returnUrl)}");
+        if ($redirectUri === null) {
+            $redirectUri = $this->auth0Configuration->redirectUri;
+        }
+
+        if (!(str_starts_with($redirectUri, 'http://') || str_starts_with($redirectUri, 'https://'))) {
+            $redirectUri = (new Path($this->getBaseUrl()))->join($redirectUri);
+        }
+
+        header("Location: {$this->auth0->logout($redirectUri)}");
         exit();
     }
 

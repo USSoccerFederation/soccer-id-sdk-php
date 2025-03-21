@@ -45,3 +45,5 @@ function getUssfAuth(): UssfAuth
 
     return $instance;
 }
+
+session_start();
