@@ -13,6 +13,7 @@ class Auth0Configuration
         public string $cookieSecret,
         public ?string $baseUrl = null,
         public string $callbackRoute = '/auth0_callback',
+        public string $redirectUri = '/',
     ) {
     }
 
@@ -35,6 +36,7 @@ class Auth0Configuration
             callbackRoute: $_ENV['USSF_AUTH0_CALLBACK_ROUTE'] ?? throw new InvalidArgumentException(
             'Missing USSF_AUTH0_CALLBACK_ROUTE from ENV'
         ),
+            redirectUri: $_ENV['USSF_AUTH0_REDIRECT_URI'] ?? '/',
         );
     }
 }

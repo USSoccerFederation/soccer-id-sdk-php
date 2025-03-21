@@ -31,11 +31,11 @@ class UssfAuth
     /**
      * Direct the user to Auth0 in order to cleanly log them out on the Auth0 side.
      * This should be done _after_ flushing their session for your app.
-     * @param string $returnUrl
+     * @param string|null $returnUrl
      * @return void
      */
     #[NoReturn]
-    public function logout(string $returnUrl = '/'): void
+    public function logout(?string $returnUrl = null): void
     {
         $this->auth0->logout($returnUrl);
     }
