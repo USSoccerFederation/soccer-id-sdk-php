@@ -39,7 +39,6 @@ function getUssfAuth(): UssfAuth
                 auth0: null, // Can specify our own Auth0 instance; leave `null` to create from `auth0Configuration`
                 logger: new StdoutLogger(), // Can specify your own PSR/log-compatible logger, such as Monolog
             ),
-            identity: new IdentityClient(new IdentityClientConfiguration()),
         );
     }
 

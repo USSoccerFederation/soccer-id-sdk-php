@@ -14,7 +14,7 @@ class UssfAuth
 {
     public function __construct(
         protected Auth0Client $auth0,
-        protected IdentityClient $identity
+        protected ?IdentityClient $identity = null
     ) {
     }
 
@@ -58,10 +58,10 @@ class UssfAuth
         $session = $this->auth0->callback();
 
         if ($callback !== null) {
-            $profile = $this->identity->getProfile($session->accessToken);
+            $profile = $this->identity?->getProfile($session->accessToken);
             $updates = $callback($session, $profile);
 
-            if (is_array($updates) || is_object($updates)) {
+            if ($profile !== null && (is_array($updates) || is_object($updates))) {
                 $this->identity->updateProfile($session->accessToken, $updates);
             }
         }
@@ -72,9 +72,9 @@ class UssfAuth
     /**
      * Returns the instance of the Identity Service client.
      * You may use this to get/update the user's profile manually instead of using a closure in `callback()`
-     * @return IdentityClient
+     * @return ?IdentityClient
      */
-    public function identity(): IdentityClient
+    public function identity(): ?IdentityClient
     {
         return $this->identity;
     }

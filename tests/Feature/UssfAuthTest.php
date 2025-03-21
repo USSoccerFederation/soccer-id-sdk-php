@@ -59,3 +59,35 @@ test('can complete callback and sync profile', function () {
     expect($receivedIdToken)->toBe('test-id-token');
     expect($receivedTestToken)->toBe('test-value');
 });
+
+test('can function without IdentityClient', function () {
+    $mockAuth0Client = Mockery::mock(Auth0Client::class)->makePartial();
+    $mockAuth0Client->allows('callback')->andReturn(
+        Auth0Session::fromStdObject(
+            (object)[
+                'user' => [],
+                'idToken' => 'test-id-token',
+                'accessToken' => '',
+                'accessTokenScope' => [],
+                'accessTokenExpiration' => 1_000_000,
+                'accessTokenExpired' => false,
+                'refreshToken' => null,
+                'backchannel' => '',
+            ]
+        )
+    );
+
+    $ussfAuth = new UssfAuth(
+        auth0: $mockAuth0Client,
+        identity: null
+    );
+
+    $ussfAuth->callback(function(Auth0Session $session, ?object $profile) {
+        expect($session->idToken)->toBe('test-id-token');
+        expect($profile)->toBeNull();
+
+        return [
+            'updated' => true, // *shouldn't* actually do anything in this case
+        ];
+    });
+});
