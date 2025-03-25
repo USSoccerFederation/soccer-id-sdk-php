@@ -10,7 +10,7 @@
             You are logged in as <?php echo htmlspecialchars($_SESSION['username']); ?> &nbsp; | &nbsp;
             <a href="/logout.php">Log out</a>
         <?php else:?>
-            <a href="/login.php">Log in via USSF</a>
+            <a href="/login.php">Log in via U.S. Soccer</a>
         <?php endif;?>
         </div>
     </body>

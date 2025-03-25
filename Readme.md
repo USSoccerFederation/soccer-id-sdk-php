@@ -8,24 +8,26 @@
 
 - PHP 8+
 - Any PSR-18 compatible HTTP client, such as Guzzle
-- Client ID & Secret from USSF
+- Client ID & Secret from U.S. Soccer
 - An agreed-upon callback URL
 
 ## About
 
 Soccer ID is an initiative by the U.S. Soccer Federation to empower partner applications. This SDK simplifies the
-integration of third-party applications with USSF's identity provider (IdP), enabling seamless user authentication via
-USSF’s user pool.
+integration of third-party applications with U.S. Soccer's identity provider (IdP), enabling seamless user
+authentication via
+U.S. Soccer’s user pool.
 
 With this SDK, developers can quickly implement secure login functionality, allowing users of their applications to
-authenticate using their USSF credentials. It abstracts the complexities of identity federation, handling authentication
+authenticate using their U.S. Soccer credentials. It abstracts the complexities of identity federation, handling
+authentication
 flows, token validation, and user session management with minimal configuration. Whether you're building a membership
 portal, a fan engagement platform, or an internal team tool, this SDK streamlines the authentication process, ensuring a
 secure and consistent login experience.
 
 ## How it works
 
-Your application will complete the expected Auth0 login flow, then will interact with USSF's Identity Service to
+Your application will complete the expected Auth0 login flow, then will interact with U.S. Soccer's Identity Service to
 get or update information about the user. Afterward, you finalize the user's session, logging them into your app.
 
 For a detailed view on all the pieces involved in this flow, see the sequence diagram below:
@@ -37,7 +39,7 @@ sequenceDiagram
     actor User
     participant Webserver as Webserver
 
-    User ->> Webserver: Visit login page, choose USSF Auth
+    User ->> Webserver: Visit login page, choose U.S. Soccer Auth
     create participant Auth0
     Webserver ->> Auth0: Forward user to Universal Login Portal
     activate Auth0
@@ -50,7 +52,7 @@ sequenceDiagram
     destroy Auth0
     Webserver <<-->> Auth0: Handshake, code exchange
     
-    create participant IdService as USSF Identity Service
+    create participant IdService as U.S. Soccer Identity Service
     Webserver -->> IdService: Get profile
     Note over Webserver: Create or update user in database
     destroy IdService
@@ -61,16 +63,16 @@ sequenceDiagram
     deactivate Webserver
 ```
 
-1. On your application's login page, provide the user with the option to "Login with USSF."
-2. Direct the user to USSF's Auth0 Universal Login page.
+1. On your application's login page, provide the user with the option to "Login with U.S. Soccer."
+2. Direct the user to U.S. Soccer's Auth0 Universal Login page.
 3. The user will then be prompted to enter their credentials (email and password) if they are not already logged into
-   USSF
+   U.S. Soccer
 4. Auth0 will set cookies on the user's browser, and then...
 5. Redirect the user to the partner app's configured "callback URL"
 6. The partner app will need to perform a "code exchange" with Auth0. On success, the user can be considered
    authenticated
-7. Send a GET request to USSF's Identity Service to get the user's profile. This contains additional information about
-   the user. Use info from the Auth0 session + profile to upsert the user into your app's database.
+7. Send a GET request to U.S. Soccer's Identity Service to get the user's profile. This contains additional information
+   about the user. Use info from the Auth0 session + profile to upsert the user into your app's database.
 8. You _may_ provide updates/changes to the user's profile if needed.
 9. Do any additional steps needed to log the user into your application and set their cookie(s).
 
@@ -91,9 +93,9 @@ composer require guzzlehttp/guzzle guzzlehttp/psr7 http-interop/http-factory-guz
 Configure your environment variables, or use `.env`. See `.env.example` for a good starting point.
 
 ```dotenv
-# Get these from USSF:
-USSF_AUTH0_CLIENT_ID=example-client-id-from-ussf
-USSF_AUTH0_CLIENT_SECRET=example-client-secret-from-ussf
+# Get these from U.S. Soccer:
+USSF_AUTH0_CLIENT_ID=example-client-id-from-ussoccer
+USSF_AUTH0_CLIENT_SECRET=example-client-secret-from-ussoccer
 USSF_AUTH0_DOMAIN=dev-41ua7lcvua0w6wte.us.auth0.com
 
 # Create your own cookie secret. This is used to encrypt the auth0 cookie.
@@ -136,15 +138,16 @@ $ussfAuth = new UssfAuth(
        auth0: null, // Can specify our own Auth0 instance; leave `null` to create from `auth0Configuration`
        logger: new StdoutLogger(), // Can specify your own PSR/log-compatible logger, such as Monolog
    ),
+   identity: new IdentityClient(new IdentityClientConfiguration()),
 );
 ```
 
-You will use the instance of `UssfAuth` on a few different pages: when the user chooses to log in via USSF, during the
-callback phase of authentication, and when logging out. You may want to bind it to a singleton or use a factory to make
-it available to these pages.
+You will use the instance of `UssfAuth` on a few different pages: when the user chooses to log in via U.S. Soccer,
+during the callback phase of authentication, and when logging out. You may want to bind it to a singleton or use a
+factory to make it available to these pages.
 
-Next, we need an action to associate with the user choosing to log in with USSF. You may have a button or link that
-binds to `/ussf_login.php`, for example. We'll need to use our `UssfAuth` instance to initiate the login attempt:
+Next, we need an action to associate with the user choosing to log in with U.S. Soccer. You may have a button or link
+that binds to `/ussf_login.php`, for example. We'll need to use our `UssfAuth` instance to initiate the login attempt:
 
 ```php
 $ussfAuth->login();
@@ -153,6 +156,7 @@ $ussfAuth->login();
 That is enough to send the user over to Auth0 to prompt for permission and credentials. Next, we need a landing page
 that Auth0 will redirect them to in order to perform a code exchange. Lets call it `/ussf_callback.php`. It will also
 need access to the `UssfAuth` instance.
+php
 
 ```php
 $session = $ussfAuth->callback(function (Auth0Session $session, ?object $profile) {
@@ -184,8 +188,8 @@ if( $user->logged_in_via_ussf ) {
 }
 ```
 
-With everything in place, you should now be able to start your app and complete the full login/logout cycle using USSF
-Auth.
+With everything in place, you should now be able to start your app and complete the full login/logout cycle using U.S.
+Soccer Auth.
 
 ## Laravel Integration
 
@@ -198,7 +202,7 @@ within the context of config files. Instead of accessing the environment variabl
 
 return [
     'auth0' => [
-        /* Get these from USSF */
+        /* Get these from U.S. Soccer */
         'client_id' => env('USSF_AUTH0_CLIENT_ID'),
         'client_secret' => env('USSF_AUTH0_CLIENT_SECRET'),
         'domain' => env('USSF_AUTH0_DOMAIN'),
@@ -259,6 +263,7 @@ class SoccerIdServiceProvider extends ServiceProvider
                         auth0Configuration: $configuration,
                         logger: $logger,
                     ),
+                    identity: new IdentityClient(new IdentityClientConfiguration()),
                 );
             }
         );
@@ -295,7 +300,7 @@ Route::get(config('soccerid.auth0.callback_route'), function (UssfAuth $ussfAuth
     $ussfAuth->callback(function (Auth0Session $session, ?object $profile) {
         session()->put('logged_in', true); // Example only; do whatever you need to actually log the user into your app
 
-        // Update your database with information from the Auth0 session and/or USSF profile
+        // Update your database with information from the Auth0 session and/or U.S. Soccer profile
         // Example:
         // ```php
         // $userRepository->update(['name' => $session->user['name'], 'email' => $session->user['email']]);
