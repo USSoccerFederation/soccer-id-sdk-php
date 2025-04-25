@@ -40,7 +40,7 @@ class IdentityClient
      * @return object|null Data shape depends on partner configuration.
      * @throws JsonException|ClientExceptionInterface
      */
-    public function getProfile(string $auth0AccessToken, null|array $params = null): ?object
+    public function getProfile(string $auth0AccessToken, ?array $params = null): ?object
     {
         $query = $this->buildQueryString($params);
         $uri = (new Path($this->configuration->baseUrl))
@@ -169,7 +169,7 @@ class IdentityClient
      * @param array|null $params
      * @return string
      */
-    protected function buildQueryString(null|array $params): string
+    protected function buildQueryString(?array $params): string
     {
         // We can't use `http_build_query` here as we key by `fields` but don't use an array
         if (empty($params)) {

@@ -54,7 +54,7 @@ class UssfAuth
      * @throws ClientExceptionInterface
      * @throws JsonException
      */
-    public function callback(?Closure $callback = null, null|array $profileParams = null): Auth0Session
+    public function callback(?Closure $callback = null, ?array $profileParams = null): Auth0Session
     {
         $session = $this->auth0->callback();
 
