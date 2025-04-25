@@ -26,7 +26,7 @@ class IdentityClientConfiguration
     public static function fromEnv(): self
     {
         return new self(
-            baseUrl: $_ENV['IDENTITY_SERVICE_BASE_URL'] ?? IdentityClient::BASE_API_URL
+            baseUrl: $_ENV['USSF_IDENTITY_SERVICE_BASE_URL'] ?? IdentityClient::BASE_API_URL
         );
     }
 }

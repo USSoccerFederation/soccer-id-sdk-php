@@ -160,6 +160,15 @@ class IdentityClient
         }
     }
 
+    /**
+     * Helps construct the GET parameters.
+     * Cannot simply use `http_build_query()` as it'll format repeated fields as arrays.
+     * For example, we need: fields=a&fields=b&fields=c
+     * http_build_query would return: fields[]=a&fields=b&fields[]=c
+     *
+     * @param array|null $params
+     * @return string
+     */
     protected function buildQueryString(null|array $params): string
     {
         // We can't use `http_build_query` here as we key by `fields` but don't use an array
