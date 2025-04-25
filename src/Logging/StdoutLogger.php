@@ -29,7 +29,10 @@ class StdoutLogger implements LoggerInterface
         $timestamp = date('Y-m-d H:i:s');
         $contextString = json_encode($context);
 
-        echo sprintf("[%s] %s: %s %s\n", $timestamp, $levelName, $message, $contextString);
+        file_put_contents(
+            'php://stderr',
+            sprintf("[%s] %s: %s %s\n", $timestamp, $levelName, $message, $contextString)
+        );
     }
 
     public function alert($message, array $context = []): void

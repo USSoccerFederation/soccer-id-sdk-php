@@ -2,6 +2,7 @@
 
 namespace USSoccerFederation\UssfAuthSdkPhp\Identity;
 
+use Exception;
 use Http\Discovery\Psr17FactoryDiscovery;
 use JsonException;
 use Psr\Http\Client\ClientExceptionInterface;
@@ -19,7 +20,7 @@ use USSoccerFederation\UssfAuthSdkPhp\Helpers\Path;
  */
 class IdentityClient
 {
-    const BASE_API_URL = 'https://api.ussoccer.org/api/identity/profile'; //todo: update me
+    const BASE_API_URL = 'https://gateway.ussoccer.com/ids';
     const PROFILE_ROUTE = '/api/v1/profile';
 
     public function __construct(
@@ -39,20 +40,25 @@ class IdentityClient
      * @return object|null Data shape depends on partner configuration.
      * @throws JsonException|ClientExceptionInterface
      */
-    public function getProfile(string $auth0AccessToken): ?object
+    public function getProfile(string $auth0AccessToken, null|array $params = null): ?object
     {
+        $query = $this->buildQueryString($params);
         $uri = (new Path($this->configuration->baseUrl))
-            ->join(static::PROFILE_ROUTE)
+            ->join(static::PROFILE_ROUTE . $query)
             ->toString();
 
         $headers = array_merge($this->getBaseHeaders(), ['Authorization' => "Bearer {$auth0AccessToken}"]);
         $response = $this->sendRequest('GET', $uri, $headers);
 
-        $decoded = json_decode(
-            json: $response->getBody()->getContents(),
-            associative: false,
-            flags: JSON_THROW_ON_ERROR
-        );
+        try {
+            $decoded = json_decode(
+                json: $response->getBody()->getContents(),
+                associative: false,
+                flags: JSON_THROW_ON_ERROR
+            );
+        } catch (Exception $e) {
+            throw new ApiException($e->getMessage(), $e->getCode(), $e);
+        }
 
         return $decoded->data ?? null;
     }
@@ -112,7 +118,7 @@ class IdentityClient
         };
 
         if ($body !== '') {
-            $request->withBody($streamFactory->createStream($body));
+            $request = $request->withBody($streamFactory->createStream($body));
         }
 
         return $request;
@@ -152,5 +158,23 @@ class IdentityClient
         if ($response->getStatusCode() < 200 || $response->getStatusCode() > 299) {
             throw new ApiException('Failed to update profile', $response->getStatusCode());
         }
+    }
+
+    protected function buildQueryString(null|array $params): string
+    {
+        // We can't use `http_build_query` here as we key by `fields` but don't use an array
+        if (empty($params)) {
+            return '';
+        }
+
+        $params = array_map(function ($item) {
+            if (!is_string($item)) {
+                throw new \DomainException("params must only contain strings.");
+            }
+
+            return 'fields=' . urlencode($item);
+        }, $params);
+
+        return '?' . implode('&', $params);
     }
 }

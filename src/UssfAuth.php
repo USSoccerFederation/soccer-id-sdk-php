@@ -49,16 +49,17 @@ class UssfAuth
      * - Return an array|object of key-value pairs for any profile updates that are needed (ie. update profile)
      *
      * @param Closure|null $callback
+     * @param array|null $profileParams
      * @return Auth0Session
-     * @throws JsonException
      * @throws ClientExceptionInterface
+     * @throws JsonException
      */
-    public function callback(?Closure $callback = null): Auth0Session
+    public function callback(?Closure $callback = null, null|array $profileParams = null): Auth0Session
     {
         $session = $this->auth0->callback();
 
         if ($callback !== null) {
-            $profile = $this->identity?->getProfile($session->accessToken);
+            $profile = $this->identity?->getProfile($session->accessToken, $profileParams);
             $updates = $callback($session, $profile);
 
             if ($profile !== null && (is_array($updates) || is_object($updates))) {
