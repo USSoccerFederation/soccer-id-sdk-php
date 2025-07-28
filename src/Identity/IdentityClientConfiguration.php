@@ -22,4 +22,11 @@ class IdentityClientConfiguration
             $this->requestFactory = Psr17FactoryDiscovery::findRequestFactory();
         }
     }
+
+    public static function fromEnv(): self
+    {
+        return new self(
+            baseUrl: $_ENV['USSF_IDENTITY_SERVICE_BASE_URL'] ?? IdentityClient::BASE_API_URL
+        );
+    }
 }

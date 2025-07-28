@@ -21,6 +21,8 @@ use USSoccerFederation\UssfAuthSdkPhp\Helpers\Path;
  */
 class Auth0Client
 {
+    const USSF_GATEWAY = 'https://gateway.ussoccer.com';
+
     public function __construct(
         protected Auth0Configuration $auth0Configuration,
         protected ?Auth0Interface $auth0 = null,
@@ -33,6 +35,7 @@ class Auth0Client
 
             $this->auth0 = new Auth0([
                 'domain' => $auth0Configuration->domain,
+                'audience' => $this->auth0Configuration->audience,
                 'clientId' => $auth0Configuration->clientId,
                 'clientSecret' => $auth0Configuration->clientSecret,
                 'cookieSecret' => $auth0Configuration->cookieSecret,
