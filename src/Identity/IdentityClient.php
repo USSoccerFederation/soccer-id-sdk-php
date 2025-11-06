@@ -50,10 +50,17 @@ class IdentityClient
         $headers = array_merge($this->getBaseHeaders(), ['Authorization' => "Bearer {$auth0AccessToken}"]);
         $response = $this->sendRequest('GET', $uri, $headers);
 
+        if ($response->getStatusCode() < 200 || $response->getStatusCode() > 299) {
+            $this->logger->error("API request returned abnormal status code {$response->getStatusCode()}");
+            return null;
+        }
+
+        $body = $response->getBody()->getContents();
+        $this->logger->debug("Raw body: {$body}");
         try {
             $decoded = json_decode(
-                json: $response->getBody()->getContents(),
-                associative: false,
+                json: $body,
+                associative: null,
                 flags: JSON_THROW_ON_ERROR
             );
         } catch (Exception $e) {
