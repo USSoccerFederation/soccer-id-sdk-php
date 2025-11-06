@@ -96,7 +96,7 @@ Configure your environment variables, or use `.env`. See `.env.example` for a go
 # Get these from U.S. Soccer:
 USSF_AUTH0_CLIENT_ID=example-client-id-from-ussoccer
 USSF_AUTH0_CLIENT_SECRET=example-client-secret-from-ussoccer
-USSF_AUTH0_DOMAIN=dev-41ua7lcvua0w6wte.us.auth0.com
+USSF_AUTH0_DOMAIN=auth-dev.ussoccer.com
 
 # Create your own cookie secret. This is used to encrypt the auth0 cookie.
 # This can be generated using `openssl rand -hex 32` from your shell.
