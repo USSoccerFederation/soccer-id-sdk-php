@@ -5,7 +5,7 @@
     if( isset($_SESSION['auth0AccessToken']) ){
         // Note: It's not recommend that you really live pull this kind of data every page load; you should probably cache it.
         // This is only here as an example indicating that you can access a user's profile outside of the login callback.
-        $profile = getUssfAuth()->identity()->getProfile($_SESSION['auth0AccessToken']) ?? null;
+        $profile = getUssfAuth()?->identity()?->getProfile($_SESSION['auth0AccessToken']) ?? null;
     }
 ?>
 <html>
