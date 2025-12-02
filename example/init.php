@@ -30,7 +30,7 @@ session_start([
     'cookie_domain' => '', // Defaults to the current domain
     'cookie_secure' => false, // Should typically be `true`, but we'll allow http:// for testing purposes
     'cookie_httponly' => true, // Prevent JavaScript access
-    'cookie_samesite' => 'Strict' // Restrict cross-site requests
+    'cookie_samesite' => 'Lax' // Restrict cross-site requests
 ]);
 
 function getUssfAuth(): UssfAuth
