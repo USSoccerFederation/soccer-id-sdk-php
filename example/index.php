@@ -25,10 +25,14 @@
             <?php echo htmlspecialchars($profile->user_metadata->profile->lastName ?? ''); ?><br />
 
             <strong>DOB:</strong> <?php echo htmlspecialchars($profile?->user_metadata->profile->birthDate ?? ''); ?>
+
+            <h2 style="margin-top: 4em;">Raw session</h2>
+            <div style="text-align: left">
+                <?php dump($session); ?>
+            </div>
         <?php else:?>
             <a href="/login.php">Log in via U.S. Soccer</a>
         <?php endif;?>
         </div>
-        <?php dump($session?->accessToken ?? null); ?>
     </body>
 </html>

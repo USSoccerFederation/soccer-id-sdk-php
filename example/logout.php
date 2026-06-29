@@ -8,5 +8,4 @@ include 'init.php';
  * calling `logout()` against the `UssfAuth` instance.
  */
 
-session_destroy();
 getUssfAuth()->logout();

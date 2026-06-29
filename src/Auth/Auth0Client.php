@@ -36,9 +36,9 @@ class Auth0Client
     protected RequestFactoryInterface $requestFactory;
     protected StreamFactoryInterface $streamFactory;
 
+    protected ?Auth0Session $auth0Session = null;
 
     protected ?Auth0 $auth0 = null; // todo: for testing, remove me
-    protected ?Auth0Session $auth0Session = null;
     protected bool $useAuth0Sdk = false; // todo: for testing, remove me
 
     public function __construct(
@@ -50,7 +50,6 @@ class Auth0Client
         $this->httpClient = Psr18ClientDiscovery::find();
         $this->requestFactory = Psr17FactoryDiscovery::findRequestFactory();
         $this->streamFactory = Psr17FactoryDiscovery::findStreamFactory();
-
 
         if ($this->auth0 === null) {
             $httpClient = Psr18ClientDiscovery::find();
@@ -77,6 +76,12 @@ class Auth0Client
         }
     }
 
+    /**
+     * Log out of the application both locally and on the IdP (will require credentials to log back in)
+     *
+     * @param string|null $returnUri
+     * @return void
+     */
     #[NoReturn]
     public function logout(?string $returnUri = null): void
     {
@@ -94,6 +99,11 @@ class Auth0Client
         exit();
     }
 
+    /**
+     * Return the current session, if logged in, otherwise returns null
+     *
+     * @return Auth0Session|null
+     */
     public function getSession(): ?Auth0Session
     {
         if ($this->auth0Session !== null) {
@@ -101,11 +111,13 @@ class Auth0Client
         }
 
         $storedSession = $this->statefulStore->get('session');
-        $this->logger->debug('pulling stored session', ['session' => $storedSession]);
-
         if ($storedSession !== null) {
-            $this->auth0Session = Auth0Session::fromStdObject($storedSession);
-            $this->auth0Session->accessTokenExpired = $this->auth0Session->accessTokenExpiration > time();
+            $session = Auth0Session::fromStdObject($storedSession);
+            $session->accessTokenExpired = $session->accessTokenExpiration < time();
+
+            if (!$session->accessTokenExpired) {
+                $this->auth0Session = $session;
+            }
         }
 
         return $this->auth0Session;
@@ -126,10 +138,11 @@ class Auth0Client
             $redirectUri = $this->getRedirectUri();
             $state = $_GET['state'];
             $code = $_GET['code'];
-            $this->logger->debug('Starting Auth0 Callback');
-            $this->logger->debug('redirect_uri: ' . ($redirectUri ?? 'NULL'));
-            $this->logger->debug('state: ' . ($state ?? 'NULL'));
-            $this->logger->debug('code: ' . ($code ?? 'NULL'));
+            $this->logger->debug('Starting Auth0 Callback', [
+                'session_id' => session_id(),
+                'state' => $state,
+                'code' => $code,
+            ]);
 
             return $this->exchange($redirectUri, $code, $state);
         }
@@ -236,7 +249,9 @@ class Auth0Client
 
     protected function genNewState(): string
     {
-        return uniqid(); // todo: replace me with something more secure
+        static $inc = 1;
+        $fingerprint = gethostname() . microtime(false);
+        return hash('sha1', $fingerprint . ($inc++) . uniqid(), false);
     }
 
     #[NoReturn]
@@ -249,10 +264,10 @@ class Auth0Client
             exit();
         }
 
-        $this->logger->debug('Starting Auth0 login');
+        $this->logger->debug('Starting Auth0 login', ['session_id' => session_id()]);
         $this->transientStore->clear();
         $state = $this->genNewState();
-        $nonce = hash('sha1', microtime(false) . uniqid(), false);
+        $nonce = hash('sha1', uniqid(more_entropy: true));
         $this->transientStore->set('nonce', $nonce);
 
         $codeChallenge = null;
@@ -264,7 +279,8 @@ class Auth0Client
         }
 
         // Store local data and direct the user to authorization endpoint
-        $this->storeState($state);
+        $this->transientStore->set('state', $state);
+        $this->transientStore->save();
         $url = $this->getLoginUri($state, $codeChallenge, $nonce);
         header("Location: {$url}");
         exit();
@@ -277,14 +293,8 @@ class Auth0Client
     ): Auth0Session {
         $storedState = $this->transientStore->get('state');
         $this->transientStore->delete('state'); // `state` needs to be one-time-use
-        $this->logger->debug('storedState: ' . ($storedState ?? 'NULL'));
 
         if ($state === null || $storedState !== $state) {
-            $this->logger->debug(
-                'Invalid state encountered during code exchange: '
-                . ($state === null ? 'state is `null`' : "`{$state}` !== `{$storedState}`"),
-            );
-
             $this->flushStores();
             throw new StateException();
         }
@@ -296,7 +306,6 @@ class Auth0Client
 
         // Handle PKCE code verification
         $originalCodeVerifier = $this->transientStore->get('code_verifier');
-        $this->logger->debug('originalCodeVerifier: ' . $originalCodeVerifier);
 
         // Perform code exchange to finalize the login process, and to get access & ID tokens
         $params = [
@@ -311,8 +320,6 @@ class Auth0Client
         $uri = (new Path($this->getAuthBaseUrl()))
             ->join(static::TOKEN_ENDPOINT)
             ->toString();
-
-        $this->logger->debug('sending request token: ' . $uri);
 
         $bodyStream = $this->streamFactory->createStream(http_build_query($params));
         $request = $this->requestFactory->createRequest('POST', $uri)
@@ -377,12 +384,10 @@ class Auth0Client
         $session->accessTokenExpired = false; // todo: How can we set this?
         $session->refreshToken = $decodedBody->refresh_token ?? null;
         $session->backchannel = $backchannel;
-
         $session->user = array_merge($accessTokenClaims, $idTokenClaims);
 
         $this->transientStore->clear();
         $this->statefulStore->set('session', $session);
-        $this->logger->debug('Storing session as:', ['session' => $session]);
 
         return $session;
     }
@@ -399,20 +404,5 @@ class Auth0Client
         $this->statefulStore->clear();
         $this->transientStore->clear();
         $this->transientStore->save();
-    }
-
-    protected function storeState(string $state): void
-    {
-        $this->transientStore->set('state', $state);
-        $this->transientStore->save();
-    }
-
-    protected function getState(string $state): ?string
-    {
-        $state = $this->transientStore->get('state', null);
-        $this->transientStore->delete('state');
-        $this->transientStore->save();
-
-        return $state;
     }
 }
