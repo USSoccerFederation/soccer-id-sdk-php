@@ -2,8 +2,6 @@
 
 namespace USSoccerFederation\UssfAuthSdkPhp\Auth;
 
-use Auth0\SDK\Auth0;
-use Auth0\SDK\Exception\StateException;
 use Http\Discovery\Psr17FactoryDiscovery;
 use Http\Discovery\Psr18ClientDiscovery;
 use JetBrains\PhpStorm\NoReturn;
@@ -19,6 +17,7 @@ use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\SessionStore;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\StoreInterface;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\CodeException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\FailedCodeExchangeException;
+use USSoccerFederation\UssfAuthSdkPhp\Exceptions\StateException;
 use USSoccerFederation\UssfAuthSdkPhp\Helpers\Http;
 use USSoccerFederation\UssfAuthSdkPhp\Helpers\Path;
 
@@ -38,9 +37,6 @@ class Auth0Client
 
     protected ?Auth0Session $auth0Session = null;
 
-    protected ?Auth0 $auth0 = null; // todo: for testing, remove me
-    protected bool $useAuth0Sdk = false; // todo: for testing, remove me
-
     public function __construct(
         protected Auth0Configuration $auth0Configuration,
         protected ?StoreInterface $transientStore = null,
@@ -51,29 +47,9 @@ class Auth0Client
         $this->requestFactory = Psr17FactoryDiscovery::findRequestFactory();
         $this->streamFactory = Psr17FactoryDiscovery::findStreamFactory();
 
-        if ($this->auth0 === null) {
-            $httpClient = Psr18ClientDiscovery::find();
-            $requestFactory = Psr17FactoryDiscovery::findRequestFactory();
-            $streamFactory = Psr17FactoryDiscovery::findStreamFactory();
-            $this->auth0 = new Auth0([
-                'domain' => $auth0Configuration->domain,
-                'audience' => [$this->auth0Configuration->audience],
-                'clientId' => $auth0Configuration->clientId,
-                'clientSecret' => $auth0Configuration->clientSecret,
-                'cookieSecret' => $auth0Configuration->cookieSecret,
-                'httpClient' => $httpClient,
-                'httpRequestFactory' => $requestFactory,
-                'httpStreamFactory' => $streamFactory,
-                'redirectUri' => $auth0Configuration->redirectUri,
-            ]);
-        }
-
         $this->transientStore = $transientStore ?? new CookieStore('transient_ussf_soccerid');
         $this->statefulStore = $statefulStore ?? new SessionStore();
-
-        if ($logger === null) {
-            $this->logger = new NullLogger();
-        }
+        $this->logger = $logger ?? new NullLogger();
     }
 
     /**
@@ -125,36 +101,32 @@ class Auth0Client
 
     public function callback(): Auth0Session
     {
-        if ($this->useAuth0Sdk) {
-            $this->auth0->exchange($this->getCallbackRoute());
-            $creds = $this->auth0->getCredentials();
-            if (empty($creds)) {
-                $this->logger->warning("Invalid Auth0 credentials after successful exchange; resetting.");
-                $this->login();
-            }
+        $state = $_GET['state'];
+        $code = $_GET['code'];
+        $this->logger->debug('Starting Auth0 Callback', [
+            'session_id' => session_id(),
+            'state' => $state,
+            'code' => $code,
+        ]);
 
-            return Auth0Session::fromStdObject($creds);
-        } else {
-            $redirectUri = $this->getRedirectUri();
-            $state = $_GET['state'];
-            $code = $_GET['code'];
-            $this->logger->debug('Starting Auth0 Callback', [
-                'session_id' => session_id(),
-                'state' => $state,
-                'code' => $code,
-            ]);
-
-            return $this->exchange($redirectUri, $code, $state);
-        }
 
         try {
-            //$this->auth0->exchange($this->getCallbackRoute());
-        } catch (StateException) {
+            $redirectUri = $this->getRedirectUri();
+            return $this->exchange($redirectUri, $code, $state);
+        } catch (StateException|CodeException|FailedCodeExchangeException $e) {
             // This can happen if something is misconfigured, or if a user reloads the callback page (reusing state).
             $this->logger->warning(
-                'Invalid state encountered during code exchange with Auth0.',
-                ['code' => $_GET['code'], 'state' => $_GET['state'], 'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown']
+                $e->getMessage(),
+                [
+                    'type' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'code' => $code,
+                    'state' => $state,
+                    'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+                ]
             );
+            $this->flushStores();
             $this->login();
         } catch (Throwable $e) {
             $this->logger->error($e);
@@ -257,13 +229,6 @@ class Auth0Client
     #[NoReturn]
     public function login(): void
     {
-        if ($this->useAuth0Sdk) {
-            $this->auth0->clear();
-            $url = $this->auth0->login($this->getCallbackRoute());
-            header("Location: {$url}");
-            exit();
-        }
-
         $this->logger->debug('Starting Auth0 login', ['session_id' => session_id()]);
         $this->transientStore->clear();
         $state = $this->genNewState();
@@ -301,7 +266,7 @@ class Auth0Client
 
         if ($code === null) {
             $this->flushStores();
-            throw new CodeException();
+            throw new CodeException('Missing code');
         }
 
         // Handle PKCE code verification
