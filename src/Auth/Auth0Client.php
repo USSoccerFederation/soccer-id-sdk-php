@@ -78,17 +78,19 @@ class Auth0Client
     }
 
     #[NoReturn]
-    public function logout(?string $redirectUri = null): void
+    public function logout(?string $returnUri = null): void
     {
-        if ($redirectUri === null) {
-            $redirectUri = $this->auth0Configuration->redirectUri;
+        if ($returnUri === null) {
+            $returnUri = $this->auth0Configuration->redirectUri;
         }
 
-        if (!(str_starts_with($redirectUri, 'http://') || str_starts_with($redirectUri, 'https://'))) {
-            $redirectUri = (new Path($this->getBaseUrl()))->join($redirectUri);
+        if (!(str_starts_with($returnUri, 'http://') || str_starts_with($returnUri, 'https://'))) {
+            $returnUri = (new Path($this->getBaseUrl()))->join($returnUri)->toString();
         }
 
-        header("Location: {$this->auth0->logout($redirectUri)}");
+        $this->flushStores();
+        $location = $this->getLogoutUri($returnUri);
+        header("Location: {$location}");
         exit();
     }
 
@@ -216,6 +218,20 @@ class Auth0Client
                 ->toString() . '?' . http_build_query($params);
 
         return $uri;
+    }
+
+    protected function getLogoutUri(string $returnTo): string
+    {
+        $path = (new Path($this->getAuthBaseUrl()))
+            ->join('v2/logout')
+            ->toString();
+
+        $params = [
+            'returnTo' => $returnTo,
+            'client_id' => $this->auth0Configuration->clientId,
+        ];
+
+        return $path . '?' . http_build_query($params);
     }
 
     protected function genNewState(): string
