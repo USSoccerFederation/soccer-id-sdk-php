@@ -1,10 +1,10 @@
 <?php
 
-namespace USSoccerFederation\UssfAuthSdkPhp\Auth\TransientStore;
+namespace USSoccerFederation\UssfAuthSdkPhp\Auth\Store;
 
 class CookieStore implements StoreInterface
 {
-    const DEFAULT_COOKIE_NAME = 'transient_ussf_soccerid';
+    const DEFAULT_COOKIE_NAME = 'ussf_soccerid';
     const COOKIE_EXPIRE_SECONDS = 600; // 10 minutes
 
     private string $cookieName;
@@ -21,7 +21,7 @@ class CookieStore implements StoreInterface
 
     public function rehydrate(): void
     {
-        $contents = $_COOKIE[$this->cookieName];
+        $contents = $_COOKIE[$this->cookieName] ?? [];
         if (empty($contents)) {
             $this->store = [];
             $this->dirty = false;
@@ -80,6 +80,7 @@ class CookieStore implements StoreInterface
         );
 
         $this->dirty = false;
+
         return true;
     }
 }

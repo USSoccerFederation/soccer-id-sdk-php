@@ -2,6 +2,7 @@
 
 namespace USSoccerFederation\UssfAuthSdkPhp\Auth;
 
+use Auth0\SDK\Auth0;
 use Auth0\SDK\Exception\StateException;
 use Http\Discovery\Psr17FactoryDiscovery;
 use Http\Discovery\Psr18ClientDiscovery;
@@ -13,8 +14,9 @@ use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RuntimeException;
 use Throwable;
-use USSoccerFederation\UssfAuthSdkPhp\Auth\TransientStore\CookieStore;
-use USSoccerFederation\UssfAuthSdkPhp\Auth\TransientStore\StoreInterface;
+use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\CookieStore;
+use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\SessionStore;
+use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\StoreInterface;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\CodeException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\FailedCodeExchangeException;
 use USSoccerFederation\UssfAuthSdkPhp\Helpers\Http;
@@ -34,23 +36,29 @@ class Auth0Client
     protected RequestFactoryInterface $requestFactory;
     protected StreamFactoryInterface $streamFactory;
 
+
+    protected ?Auth0 $auth0 = null; // todo: for testing, remove me
+    protected ?Auth0Session $auth0Session = null;
+    protected bool $useAuth0Sdk = false; // todo: for testing, remove me
+
     public function __construct(
         protected Auth0Configuration $auth0Configuration,
-        protected ?StoreInterface $store = null,
+        protected ?StoreInterface $transientStore = null,
+        protected ?StoreInterface $statefulStore = null,
         protected ?LoggerInterface $logger = null,
     ) {
         $this->httpClient = Psr18ClientDiscovery::find();
         $this->requestFactory = Psr17FactoryDiscovery::findRequestFactory();
         $this->streamFactory = Psr17FactoryDiscovery::findStreamFactory();
 
-        /*
+
         if ($this->auth0 === null) {
             $httpClient = Psr18ClientDiscovery::find();
             $requestFactory = Psr17FactoryDiscovery::findRequestFactory();
             $streamFactory = Psr17FactoryDiscovery::findStreamFactory();
             $this->auth0 = new Auth0([
                 'domain' => $auth0Configuration->domain,
-                'audience' => $this->auth0Configuration->audience,
+                'audience' => [$this->auth0Configuration->audience],
                 'clientId' => $auth0Configuration->clientId,
                 'clientSecret' => $auth0Configuration->clientSecret,
                 'cookieSecret' => $auth0Configuration->cookieSecret,
@@ -59,9 +67,10 @@ class Auth0Client
                 'httpStreamFactory' => $streamFactory,
                 'redirectUri' => $auth0Configuration->redirectUri,
             ]);
-        }*/
+        }
 
-        $this->store = $store ?? new CookieStore();
+        $this->transientStore = $transientStore ?? new CookieStore('transient_ussf_soccerid');
+        $this->statefulStore = $statefulStore ?? new SessionStore();
 
         if ($logger === null) {
             $this->logger = new NullLogger();
@@ -83,17 +92,45 @@ class Auth0Client
         exit();
     }
 
+    public function getSession(): ?Auth0Session
+    {
+        if ($this->auth0Session !== null) {
+            return $this->auth0Session;
+        }
+
+        $storedSession = $this->statefulStore->get('session');
+        $this->logger->debug('pulling stored session', ['session' => $storedSession]);
+
+        if ($storedSession !== null) {
+            $this->auth0Session = Auth0Session::fromStdObject($storedSession);
+            $this->auth0Session->accessTokenExpired = $this->auth0Session->accessTokenExpiration > time();
+        }
+
+        return $this->auth0Session;
+    }
+
     public function callback(): Auth0Session
     {
-        $redirectUri = $this->getRedirectUri();
-        $state = $_GET['state'];
-        $code = $_GET['code'];
-        $this->logger->debug('Starting Auth0 Callback');
-        $this->logger->debug('redirect_uri: ' . ($redirectUri ?? 'NULL'));
-        $this->logger->debug('state: ' . ($state ?? 'NULL'));
-        $this->logger->debug('code: ' . ($code ?? 'NULL'));
+        if ($this->useAuth0Sdk) {
+            $this->auth0->exchange($this->getCallbackRoute());
+            $creds = $this->auth0->getCredentials();
+            if (empty($creds)) {
+                $this->logger->warning("Invalid Auth0 credentials after successful exchange; resetting.");
+                $this->login();
+            }
 
-        $this->exchange($redirectUri, $code, $state);
+            return Auth0Session::fromStdObject($creds);
+        } else {
+            $redirectUri = $this->getRedirectUri();
+            $state = $_GET['state'];
+            $code = $_GET['code'];
+            $this->logger->debug('Starting Auth0 Callback');
+            $this->logger->debug('redirect_uri: ' . ($redirectUri ?? 'NULL'));
+            $this->logger->debug('state: ' . ($state ?? 'NULL'));
+            $this->logger->debug('code: ' . ($code ?? 'NULL'));
+
+            return $this->exchange($redirectUri, $code, $state);
+        }
 
         try {
             //$this->auth0->exchange($this->getCallbackRoute());
@@ -108,14 +145,6 @@ class Auth0Client
             $this->logger->error($e);
             $this->login();
         }
-
-        $creds = $this->auth0->getCredentials();
-        if (empty($creds)) {
-            $this->logger->warning("Invalid Auth0 credentials after successful exchange; resetting.");
-            $this->login();
-        }
-
-        return Auth0Session::fromStdObject($creds);
     }
 
     protected function getCallbackRoute(): string
@@ -159,17 +188,28 @@ class Auth0Client
         return $url;
     }
 
-    protected function getLoginUri(string $state): string
-    {
+    protected function getLoginUri(
+        string $state,
+        ?string $codeChallenge = null,
+        ?string $nonce = null,
+    ): string {
         $redirectUri = $this->getRedirectUri();
 
         $params = [
+            'response_mode' => 'query',
             'response_type' => 'code',
-            'client_id' => $this->auth0Configuration->clientId,
-            'redirect_uri' => $redirectUri,
             'scope' => 'openid profile email',
+            'redirect_uri' => $redirectUri,
+            'client_id' => $this->auth0Configuration->clientId,
+            'audience' => $this->auth0Configuration->audience,
             'state' => $state,
+            'nonce' => $nonce,
         ];
+
+        if ($codeChallenge !== null) {
+            $params['code_challenge'] = $codeChallenge;
+            $params['code_challenge_method'] = 'S256';
+        }
 
         $uri = (new Path($this->getAuthBaseUrl()))
                 ->join(static::AUTHORIZE_ENDPOINT)
@@ -186,16 +226,30 @@ class Auth0Client
     #[NoReturn]
     public function login(): void
     {
-        //$this->auth0->clear();
+        if ($this->useAuth0Sdk) {
+            $this->auth0->clear();
+            $url = $this->auth0->login($this->getCallbackRoute());
+            header("Location: {$url}");
+            exit();
+        }
+
         $this->logger->debug('Starting Auth0 login');
-
+        $this->transientStore->clear();
         $state = $this->genNewState();
-        $this->store->clear();
+        $nonce = hash('sha1', microtime(false) . uniqid(), false);
+        $this->transientStore->set('nonce', $nonce);
+
+        $codeChallenge = null;
+        if ($this->auth0Configuration->usePkce) {
+            // Need to follow PKCE spec; strip disallowed characters
+            $codeVerifier = rtrim(strtr(base64_encode(random_bytes(64)), '+/', '-_'), '=');
+            $codeChallenge = rtrim(strtr(base64_encode(hash('sha256', $codeVerifier, true)), '+/', '-_'), '=');
+            $this->transientStore->set('code_verifier', $codeVerifier);
+        }
+
+        // Store local data and direct the user to authorization endpoint
         $this->storeState($state);
-
-        $this->logger->debug('storing state: ' . $state);
-
-        $url = $this->getLoginUri($state);
+        $url = $this->getLoginUri($state, $codeChallenge, $nonce);
         header("Location: {$url}");
         exit();
     }
@@ -203,10 +257,10 @@ class Auth0Client
     public function exchange(
         string $redirectUri,
         ?string $code = null,
-        ?string $state = null,
-    ): void {
-        // todo: nonce?
-        $storedState = $this->getState($state);
+        ?string $state = null
+    ): Auth0Session {
+        $storedState = $this->transientStore->get('state');
+        $this->transientStore->delete('state'); // `state` needs to be one-time-use
         $this->logger->debug('storedState: ' . ($storedState ?? 'NULL'));
 
         if ($state === null || $storedState !== $state) {
@@ -214,25 +268,28 @@ class Auth0Client
                 'Invalid state encountered during code exchange: '
                 . ($state === null ? 'state is `null`' : "`{$state}` !== `{$storedState}`"),
             );
-            $this->clear();
+
+            $this->flushStores();
             throw new StateException();
         }
 
         if ($code === null) {
-            $this->clear();
+            $this->flushStores();
             throw new CodeException();
         }
 
-        // todo: PKCE code verifier
+        // Handle PKCE code verification
+        $originalCodeVerifier = $this->transientStore->get('code_verifier');
+        $this->logger->debug('originalCodeVerifier: ' . $originalCodeVerifier);
 
-        // todo: code exchange
-        $codeVerifier = null;
+        // Perform code exchange to finalize the login process, and to get access & ID tokens
         $params = [
             'redirect_uri' => $redirectUri,
             'grant_type' => 'authorization_code',
             'client_id' => $this->auth0Configuration->clientId,
             'client_secret' => $this->auth0Configuration->clientSecret,
             'code' => $code,
+            'code_verifier' => $originalCodeVerifier,
         ];
 
         $uri = (new Path($this->getAuthBaseUrl()))
@@ -258,16 +315,41 @@ class Auth0Client
                 ]
             );
 
-            $this->clear();
+            $this->flushStores();
             throw new FailedCodeExchangeException();
         }
 
         $decodedBody = json_decode($bodyContents, false);
         if (empty($decodedBody)) {
+            $this->flushStores();
             throw new FailedCodeExchangeException('Invalid response content received from code exchange.');
         }
 
+        $nonce = $this->transientStore->get('nonce');
+        $this->transientStore->delete('nonce'); // `nonce` can only be used once
+        if (!empty($decodedBody->id_token) && $nonce === null) {
+            $this->flushStores();
+            throw new StateException('Missing nonce');
+        }
+
         /** @var object{access_token?: string, scope?: string, refresh_token?: string, id_token?: string, expires_in?: int|string, token_type?: string} $decodedBody */
+        $accessTokenClaims = $this->extractTokenClaims($decodedBody->access_token);
+        $idTokenClaims = empty($decodedBody->id_token) ? [] : $this->extractTokenClaims($decodedBody->id_token);
+
+        if (empty($accessTokenClaims)) {
+            $this->flushStores();
+            throw new StateException('Missing or invalid accessToken');
+        }
+
+        $backchannel = hash(
+            'sha256',
+            implode('|', [
+                    $accessTokenClaims['sub'] ?? '',
+                    $accessTokenClaims['iss'] ?? '',
+                    $idTokenClaims['sid'] ?? ''
+                ]
+            )
+        );
 
         $session = new Auth0Session();
         $session->idToken = $decodedBody->id_token;
@@ -275,34 +357,45 @@ class Auth0Client
         $session->accessTokenScope = array_map(function ($item) {
             return trim($item);
         }, explode(' ', $decodedBody->scope));
-        $session->accessTokenExpiration = $decodedBody->expires_in;
+        $session->accessTokenExpiration = time() + (int)$decodedBody->expires_in;
         $session->accessTokenExpired = false; // todo: How can we set this?
         $session->refreshToken = $decodedBody->refresh_token ?? null;
-        $session->user = [
-            // todo: comes from decoded ID token
-        ];
+        $session->backchannel = $backchannel;
 
-        dd($session);
+        $session->user = array_merge($accessTokenClaims, $idTokenClaims);
+
+        $this->transientStore->clear();
+        $this->statefulStore->set('session', $session);
+        $this->logger->debug('Storing session as:', ['session' => $session]);
+
+        return $session;
     }
 
-    public function clear(): void
+    protected function extractTokenClaims(string $token): array
     {
-        // todo
-        $this->store->clear();
-        $this->store->save();
+        $parts = explode('.', $token);
+        $decoded = base64_decode($parts[1]);
+        return json_decode($decoded, true, flags: JSON_THROW_ON_ERROR);
+    }
+
+    public function flushStores(): void
+    {
+        $this->statefulStore->clear();
+        $this->transientStore->clear();
+        $this->transientStore->save();
     }
 
     protected function storeState(string $state): void
     {
-        $this->store->set('state', $state);
-        $this->store->save();
+        $this->transientStore->set('state', $state);
+        $this->transientStore->save();
     }
 
     protected function getState(string $state): ?string
     {
-        $state = $this->store->get('state', null);
-        $this->store->delete('state');
-        $this->store->save();
+        $state = $this->transientStore->get('state', null);
+        $this->transientStore->delete('state');
+        $this->transientStore->save();
 
         return $state;
     }

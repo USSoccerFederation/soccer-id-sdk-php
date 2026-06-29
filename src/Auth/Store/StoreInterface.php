@@ -1,6 +1,6 @@
 <?php
 
-namespace USSoccerFederation\UssfAuthSdkPhp\Auth\TransientStore;
+namespace USSoccerFederation\UssfAuthSdkPhp\Auth\Store;
 
 interface StoreInterface
 {

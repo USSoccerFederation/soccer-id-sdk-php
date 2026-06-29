@@ -6,8 +6,7 @@
 
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Client;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Configuration;
-use USSoccerFederation\UssfAuthSdkPhp\Identity\IdentityClient;
-use USSoccerFederation\UssfAuthSdkPhp\Identity\IdentityClientConfiguration;
+use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\SessionStore;
 use USSoccerFederation\UssfAuthSdkPhp\Logging\StdoutLogger;
 use USSoccerFederation\UssfAuthSdkPhp\UssfAuth;
 
@@ -24,20 +23,19 @@ if (file_exists("{$envPath}/.env")) {
  * ```
  */
 
-session_start([
-    'cookie_lifetime' => 3600, // Cookie expires in 1 hour
-    'cookie_path' => '/',
-    'cookie_domain' => '', // Defaults to the current domain
-    'cookie_secure' => false, // Should typically be `true`, but we'll allow http:// for testing purposes
-    'cookie_httponly' => true, // Prevent JavaScript access
-    'cookie_samesite' => 'Lax' // Restrict cross-site requests
-]);
+$logger = new StdoutLogger(); // Can also specify your own PSR/log-compatible logger, such as Monolog
+
 
 function getUssfAuth(): UssfAuth
 {
+    global $logger;
+
     static $instance = null;
     if ($instance === null) {
-        $logger = new StdoutLogger(); // Can also specify your own PSR/log-compatible logger, such as Monolog
+        $sessionStore = new SessionStore(
+            cookieSecure: false, // Should typically be `true`, but we'll allow http:// for testing purposes
+        );
+        $logger->info('Session ID: ' . session_id());
 
         /*
          * Just an example of how you would bootstrap UssfAuth.
@@ -47,13 +45,13 @@ function getUssfAuth(): UssfAuth
         $instance = new UssfAuth(
             auth0: new Auth0Client(
                 auth0Configuration: Auth0Configuration::fromEnv(), // Load from environment variables
-                auth0: null, // Can specify our own Auth0 instance; leave `null` to create from `auth0Configuration`
+                statefulStore: $sessionStore,
                 logger: $logger,
             ),
-            identity: new IdentityClient(
+            identity: null, /*new IdentityClient(
                 configuration: IdentityClientConfiguration::fromEnv(),
                 logger: $logger
-            ),
+            ),*/
         );
     }
 

@@ -79,4 +79,9 @@ class UssfAuth
     {
         return $this->identity;
     }
+
+    public function getSession(): ?Auth0Session
+    {
+        return $this->auth0->getSession();
+    }
 }
