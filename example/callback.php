@@ -34,13 +34,6 @@ $session = getUssfAuth()->callback(
          * }
          */
 
-        // Set the user's session cookies, or whatever else your app needs to do to log in a user.
-        // Example only; not secure
-        $_SESSION['logged_in'] = true;
-        $_SESSION['username'] = $session->user['email'];
-        $_SESSION['auth0AccessToken'] = $session->accessToken;
-
-
         // You may return an array of key-value pairs in order to perform a profile update
         // to USSF's Identity Service
         return [

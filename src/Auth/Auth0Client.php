@@ -2,6 +2,7 @@
 
 namespace USSoccerFederation\UssfAuthSdkPhp\Auth;
 
+use Exception;
 use Http\Discovery\Psr17FactoryDiscovery;
 use Http\Discovery\Psr18ClientDiscovery;
 use JetBrains\PhpStorm\NoReturn;
@@ -31,7 +32,6 @@ class Auth0Client
     const AUTHORIZE_ENDPOINT = 'authorize';
     const TOKEN_ENDPOINT = 'oauth/token';
 
-    protected ClientInterface $httpClient;
     protected RequestFactoryInterface $requestFactory;
     protected StreamFactoryInterface $streamFactory;
 
@@ -39,11 +39,12 @@ class Auth0Client
 
     public function __construct(
         protected Auth0Configuration $auth0Configuration,
+        protected ?ClientInterface $httpClient = null,
         protected ?StoreInterface $transientStore = null,
         protected ?StoreInterface $statefulStore = null,
         protected ?LoggerInterface $logger = null,
     ) {
-        $this->httpClient = Psr18ClientDiscovery::find();
+        $this->httpClient = $httpClient ?? Psr18ClientDiscovery::find();
         $this->requestFactory = Psr17FactoryDiscovery::findRequestFactory();
         $this->streamFactory = Psr17FactoryDiscovery::findStreamFactory();
 
@@ -93,6 +94,8 @@ class Auth0Client
 
             if (!$session->accessTokenExpired) {
                 $this->auth0Session = $session;
+            } else {
+                $this->statefulStore->delete('session');
             }
         }
 
@@ -360,6 +363,11 @@ class Auth0Client
     protected function extractTokenClaims(string $token): array
     {
         $parts = explode('.', $token);
+
+        if (count($parts) < 3) {
+            throw new Exception('Cannot decode JWT token');
+        }
+
         $decoded = base64_decode($parts[1]);
         return json_decode($decoded, true, flags: JSON_THROW_ON_ERROR);
     }
