@@ -35,7 +35,7 @@ class Auth0Configuration
             'Missing USSF_AUTH0_COOKIE_SECRET from ENV'
         ),
             baseUrl: $_ENV['APP_URL'] ?? '',
-            audience: !empty($_ENV['USSF_AUTH0_AUDIENCE']) ? $_ENV['USSF_AUTH0_AUDIENCE'] : [Auth0Client::USSF_GATEWAY],
+            audience: !empty($_ENV['USSF_AUTH0_AUDIENCE']) ? $_ENV['USSF_AUTH0_AUDIENCE'] : Auth0Client::USSF_GATEWAY,
             callbackRoute: $_ENV['USSF_AUTH0_CALLBACK_ROUTE'] ?? throw new InvalidArgumentException(
             'Missing USSF_AUTH0_CALLBACK_ROUTE from ENV'
         ),
