@@ -48,9 +48,12 @@ class Auth0Client
         $this->requestFactory = Psr17FactoryDiscovery::findRequestFactory();
         $this->streamFactory = Psr17FactoryDiscovery::findStreamFactory();
 
-        $this->transientStore = $transientStore ?? new CookieStore('transient_ussf_soccerid');
         $this->statefulStore = $statefulStore ?? new SessionStore();
         $this->logger = $logger ?? new NullLogger();
+        $this->transientStore = $transientStore ?? new CookieStore(
+            cookieName: 'transient_ussf_soccerid',
+            cookieSecret: $this->auth0Configuration->cookieSecret
+        );
     }
 
     /**
@@ -131,7 +134,7 @@ class Auth0Client
      * user's browser session, to ensure that all parties agree. If any discrepancies or errors occur along
      * the way, an Exception will be raised, otherwise the user will be authenticated and an `Auth0Session`
      * returned.
-     * 
+     *
      * @param string $redirectUri
      * @param string|null $code
      * @param string|null $state
