@@ -18,6 +18,7 @@ use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\SessionStore;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\StoreInterface;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\CodeException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\FailedCodeExchangeException;
+use USSoccerFederation\UssfAuthSdkPhp\Exceptions\MalformedUrlException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\StateException;
 use USSoccerFederation\UssfAuthSdkPhp\Helpers\Http;
 use USSoccerFederation\UssfAuthSdkPhp\Helpers\Path;
@@ -256,6 +257,7 @@ class Auth0Client
      *
      * @param string|null $returnUri
      * @return void
+     * @throws MalformedUrlException
      */
     #[NoReturn]
     public function logout(?string $returnUri = null): void
@@ -264,7 +266,8 @@ class Auth0Client
             $returnUri = $this->auth0Configuration->redirectUri;
         }
 
-        if (!(str_starts_with($returnUri, 'http://') || str_starts_with($returnUri, 'https://'))) {
+        // If missing schema, it is probably a relative path; prefix with base URL
+        if (!Http::urlHasSchema($returnUri)) {
             $returnUri = (new Path($this->getBaseUrl()))->join($returnUri)->toString();
         }
 
@@ -364,12 +367,7 @@ class Auth0Client
      */
     protected function getAuthBaseUrl(): string
     {
-        $url = $this->auth0Configuration->domain;
-        if (!str_starts_with($url, 'https://') && !str_starts_with($url, 'http://')) {
-            $url = 'https://' . $url;
-        }
-
-        return $url;
+        return Http::autoPrefixSchema($this->auth0Configuration->domain, assumeHttps: true);
     }
 
     /**

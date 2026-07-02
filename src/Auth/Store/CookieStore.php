@@ -2,6 +2,8 @@
 
 namespace USSoccerFederation\UssfAuthSdkPhp\Auth\Store;
 
+use USSoccerFederation\UssfAuthSdkPhp\Helpers\Http;
+
 class CookieStore implements StoreInterface
 {
     const DEFAULT_COOKIE_NAME = 'ussf_soccerid';
@@ -135,6 +137,7 @@ class CookieStore implements StoreInterface
      *
      * @param string $contents
      * @return void
+     * @throws \Exception
      */
     public function deserialize(string $contents): void
     {
@@ -211,7 +214,6 @@ class CookieStore implements StoreInterface
      */
     protected function isSecure(): bool
     {
-        return (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') ||
-            ($_SERVER['SERVER_PORT'] == 443);
+        return Http::getHttpSchema() === 'https';
     }
 }
