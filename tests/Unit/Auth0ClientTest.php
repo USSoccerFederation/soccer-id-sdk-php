@@ -51,8 +51,8 @@ test('can callback', function () {
     $conf = new Auth0Configuration(
         domain: 'http://127.0.0.1/',
         clientId: 'unittest',
-        clientSecret: '',
-        cookieSecret: '',
+        clientSecret: 'secret',
+        cookieSecret: 'secret',
         baseUrl: 'http://127.0.0.1:8000',
         audience: 'http://127.0.0.1/',
     );
