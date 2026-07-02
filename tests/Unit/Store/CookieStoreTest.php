@@ -2,6 +2,8 @@
 
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\CookieStore;
 
+covers(CookieStore::class);
+
 it('can serialize and deserialize', function () {
     $store = new CookieStore('unittest', 'secret');
     $store->set('hello', 'world');

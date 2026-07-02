@@ -6,6 +6,7 @@ use Exception;
 use Http\Discovery\Psr17FactoryDiscovery;
 use Http\Discovery\Psr18ClientDiscovery;
 use JetBrains\PhpStorm\NoReturn;
+use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
@@ -143,9 +144,11 @@ class Auth0Client
      * @return Auth0Session
      * @throws CodeException
      * @throws FailedCodeExchangeException
+     * @throws InvalidTokenClaimsException
+     * @throws MalformedUrlException
      * @throws StateException
      * @throws \JsonException
-     * @throws \Psr\Http\Client\ClientExceptionInterface
+     * @throws ClientExceptionInterface
      */
     public function exchange(
         string $redirectUri,
@@ -386,6 +389,7 @@ class Auth0Client
      * @param string|null $codeChallenge
      * @param string|null $nonce
      * @return string
+     * @throws MalformedUrlException
      */
     protected function getLoginUri(
         string $state,
@@ -428,6 +432,7 @@ class Auth0Client
      *
      * @param string $returnTo
      * @return string
+     * @throws MalformedUrlException
      */
     protected function getLogoutUri(string $returnTo): string
     {

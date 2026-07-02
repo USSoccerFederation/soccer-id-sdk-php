@@ -2,6 +2,9 @@
 
 namespace USSoccerFederation\UssfAuthSdkPhp\Auth\Store;
 
+/**
+ * In-memory data store. Not applicable for usage outside unit testing.
+ */
 class MemoryStore implements StoreInterface
 {
     protected array $store = [];

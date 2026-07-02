@@ -2,6 +2,9 @@
 
 namespace USSoccerFederation\UssfAuthSdkPhp\Auth\Store;
 
+/**
+ * Rely on PHP sessions for a storage medium
+ */
 class SessionStore implements StoreInterface
 {
     public function __construct(

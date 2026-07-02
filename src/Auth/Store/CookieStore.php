@@ -4,6 +4,10 @@ namespace USSoccerFederation\UssfAuthSdkPhp\Auth\Store;
 
 use USSoccerFederation\UssfAuthSdkPhp\Helpers\Http;
 
+/**
+ * Cookie storage medium. Data will be serialized into the given cookie name.
+ * Optionally, you may also encrypt the cookie's data.
+ */
 class CookieStore implements StoreInterface
 {
     const DEFAULT_COOKIE_NAME = 'ussf_soccerid';
