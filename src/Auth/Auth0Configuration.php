@@ -47,6 +47,11 @@ class Auth0Configuration
                 ['true', 'yes', '1']
             );
 
+        $usePkce = !isset($_ENV['USSF_AUTH0_USE_PKCE']) || in_array(
+                strtolower(trim($_ENV['USSF_AUTH0_USE_PKCE'])),
+                ['true', 'yes', '1']
+            );
+
         return new self(
             domain: !empty($_ENV['USSF_AUTH0_DOMAIN'])
                 ? $_ENV['USSF_AUTH0_DOMAIN']
@@ -75,6 +80,7 @@ class Auth0Configuration
                 : throw new InvalidArgumentException('Missing USSF_AUTH0_CALLBACK_ROUTE from ENV'),
 
             redirectUri: $_ENV['USSF_AUTH0_REDIRECT_URI'] ?? '/',
+            usePkce: $usePkce,
             alwaysPromptForConsent: $promptForConsent,
         );
     }

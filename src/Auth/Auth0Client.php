@@ -174,9 +174,12 @@ class Auth0Client
             'grant_type' => 'authorization_code',
             'client_id' => $this->auth0Configuration->clientId,
             'client_secret' => $this->auth0Configuration->clientSecret,
-            'code' => $code,
-            'code_verifier' => $originalCodeVerifier,
+            'code' => $code
         ];
+
+        if ($this->auth0Configuration->usePkce) {
+            $params['code_verifier'] = $originalCodeVerifier;
+        }
 
         $uri = (new Path($this->getAuthBaseUrl()))
             ->join(static::TOKEN_ENDPOINT)
