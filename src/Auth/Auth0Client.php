@@ -451,6 +451,10 @@ class Auth0Client
             $params['code_challenge_method'] = 'S256';
         }
 
+        if ($this->auth0Configuration->alwaysPromptForConsent) {
+            $params['prompt'] = 'consent';
+        }
+
         $uri = (new Path($this->getAuthBaseUrl()))
                 ->join(static::AUTHORIZE_ENDPOINT)
                 ->toString() . '?' . http_build_query($params);

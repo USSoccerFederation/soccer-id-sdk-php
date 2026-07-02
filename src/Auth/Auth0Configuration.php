@@ -16,11 +16,17 @@ class Auth0Configuration
         public string $callbackRoute = '/auth0_callback',
         public string $redirectUri = '/',
         public bool $usePkce = true,
+        public bool $alwaysPromptForConsent = false,
     ) {
     }
 
     public static function fromEnv(): self
     {
+        $promptForConsent = !empty($_ENV['USSF_AUTH0_ALWAYS_PROMPT_FOR_CONSENT']) && in_array(
+                strtolower(trim($_ENV['USSF_AUTH0_ALWAYS_PROMPT_FOR_CONSENT'])),
+                ['true', 'yes', '1']
+            );
+
         return new self(
             domain: $_ENV['USSF_AUTH0_DOMAIN'] ?? throw new InvalidArgumentException(
             'Missing USSF_AUTH0_DOMAIN from ENV'
@@ -40,6 +46,7 @@ class Auth0Configuration
             'Missing USSF_AUTH0_CALLBACK_ROUTE from ENV'
         ),
             redirectUri: $_ENV['USSF_AUTH0_REDIRECT_URI'] ?? '/',
+            alwaysPromptForConsent: $promptForConsent,
         );
     }
 }
