@@ -22,9 +22,22 @@ test('can callback', function () {
         $header = base64_encode('{"alg":"RS256"}');
         $sig = base64_encode('signatureGoesHere');
         $body = [
-            'id_token' => "{$header}." . base64_encode(json_encode(['nonce' => 'unittest|nonce'])) . ".{$sig}",
-            'access_token' => "{$header}." . base64_encode(
-                    json_encode(['sub' => 'unittest', 'iat' => time(), 'exp' => time() + 3600])
+            'id_token' => "{$header}."
+                . base64_encode(json_encode([
+                    'iss' => 'http://127.0.0.1/',
+                    'aud' => 'unittest',
+                    'nonce' => 'unittest|nonce',
+                    'exp' => time() + 3600
+                ]))
+                . ".{$sig}",
+            'access_token' => "{$header}."
+                . base64_encode(json_encode([
+                        'iss' => 'http://127.0.0.1/',
+                        'aud' => 'http://127.0.0.1/',
+                        'sub' => 'unittest',
+                        'iat' => time(),
+                        'exp' => time() + 3600
+                    ])
                 ) . ".{$sig}",
             'refresh_token' => 'UnitTestRefreshToken',
             'scope' => 'openid profile email',
@@ -35,7 +48,14 @@ test('can callback', function () {
     });
 
     $logger = new StdoutLogger();
-    $conf = new Auth0Configuration('', '', '', '', 'http://127.0.0.1:8000');
+    $conf = new Auth0Configuration(
+        domain: 'http://127.0.0.1/',
+        clientId: 'unittest',
+        clientSecret: '',
+        cookieSecret: '',
+        baseUrl: 'http://127.0.0.1:8000',
+        audience: 'http://127.0.0.1/',
+    );
     $ussfAuth = new Auth0Client(
         auth0Configuration: $conf,
         httpClient: $mockHttpClient,

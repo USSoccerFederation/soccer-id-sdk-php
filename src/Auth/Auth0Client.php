@@ -18,6 +18,7 @@ use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\SessionStore;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\StoreInterface;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\CodeException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\FailedCodeExchangeException;
+use USSoccerFederation\UssfAuthSdkPhp\Exceptions\InvalidTokenClaimsException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\MalformedUrlException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\StateException;
 use USSoccerFederation\UssfAuthSdkPhp\Helpers\Http;
@@ -224,6 +225,9 @@ class Auth0Client
             throw new StateException('Missing or invalid accessToken');
         }
 
+        $this->verifyTokenClaims($accessTokenClaims);
+        $this->verifyTokenClaims($idTokenClaims);
+
         $backchannel = hash(
             'sha256',
             implode('|', [
@@ -250,6 +254,51 @@ class Auth0Client
         $this->statefulStore->set('session', $session);
 
         return $session;
+    }
+
+    protected function verifyTokenClaims(array $claims): void
+    {
+        // Verify issuer
+        $expectedIss = rtrim($this->getAuthBaseUrl(), '/');
+        if (empty($claims['iss']) || rtrim($claims['iss'], '/') !== $expectedIss) {
+            $this->logger->debug(
+                'Invalid issuer encountered',
+                ['expected' => $expectedIss, 'received' => $claims['iss']]
+            );
+            throw new InvalidTokenClaimsException('Invalid issuer: ' . $claims['iss']);
+        }
+
+        // Verify audience
+        $audValidated = false;
+        $validAudiences = [$this->auth0Configuration->clientId, $this->auth0Configuration->audience];
+
+        if (!is_array($claims['aud'])) {
+            $claims['aud'] = [$claims['aud']];
+        }
+
+        $this->logger->debug('Checking audience validity', [
+            'expected_one_of' => $validAudiences,
+            'received' => $claims['aud']
+        ]);
+        foreach ($claims['aud'] as $aud) {
+            if (in_array($aud, $validAudiences)) {
+                $audValidated = true;
+            }
+        }
+
+        if (!$audValidated) {
+            throw new InvalidTokenClaimsException('Invalid audience');
+        }
+
+        // Verify expiry
+        if (empty($claims['exp']) || $claims['exp'] < time()) {
+            throw new InvalidTokenClaimsException('Token expired');
+        }
+
+        // Verify Not-Before
+        if (!empty($claims['nbf']) && $claims['nbf'] > time()) {
+            throw new InvalidTokenClaimsException('Token must not be accepted yet (NBF)');
+        }
     }
 
     /**
