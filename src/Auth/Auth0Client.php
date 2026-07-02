@@ -11,6 +11,7 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Random\RandomException;
 use RuntimeException;
 use Throwable;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\CookieStore;
@@ -75,9 +76,8 @@ class Auth0Client
 
         $codeChallenge = null;
         if ($this->auth0Configuration->usePkce) {
-            // Need to follow PKCE spec; strip disallowed characters
-            $codeVerifier = rtrim(strtr(base64_encode(random_bytes(64)), '+/', '-_'), '=');
-            $codeChallenge = rtrim(strtr(base64_encode(hash('sha256', $codeVerifier, true)), '+/', '-_'), '=');
+            $codeVerifier = $this->genCodeVerifier();
+            $codeChallenge = $this->genCodeChallenge($codeVerifier);
             $this->transientStore->set('code_verifier', $codeVerifier);
         }
 
@@ -256,51 +256,6 @@ class Auth0Client
         return $session;
     }
 
-    protected function verifyTokenClaims(array $claims): void
-    {
-        // Verify issuer
-        $expectedIss = rtrim($this->getAuthBaseUrl(), '/');
-        if (empty($claims['iss']) || rtrim($claims['iss'], '/') !== $expectedIss) {
-            $this->logger->debug(
-                'Invalid issuer encountered',
-                ['expected' => $expectedIss, 'received' => $claims['iss']]
-            );
-            throw new InvalidTokenClaimsException('Invalid issuer: ' . $claims['iss']);
-        }
-
-        // Verify audience
-        $audValidated = false;
-        $validAudiences = [$this->auth0Configuration->clientId, $this->auth0Configuration->audience];
-
-        if (!is_array($claims['aud'])) {
-            $claims['aud'] = [$claims['aud']];
-        }
-
-        $this->logger->debug('Checking audience validity', [
-            'expected_one_of' => $validAudiences,
-            'received' => $claims['aud']
-        ]);
-        foreach ($claims['aud'] as $aud) {
-            if (in_array($aud, $validAudiences)) {
-                $audValidated = true;
-            }
-        }
-
-        if (!$audValidated) {
-            throw new InvalidTokenClaimsException('Invalid audience');
-        }
-
-        // Verify expiry
-        if (empty($claims['exp']) || $claims['exp'] < time()) {
-            throw new InvalidTokenClaimsException('Token expired');
-        }
-
-        // Verify Not-Before
-        if (!empty($claims['nbf']) && $claims['nbf'] > time()) {
-            throw new InvalidTokenClaimsException('Token must not be accepted yet (NBF)');
-        }
-    }
-
     /**
      * Log out of the application both locally and on the IdP (will require credentials to log back in)
      *
@@ -413,6 +368,7 @@ class Auth0Client
     /**
      * Get the IdP authorization (ex: Auth0 Universal Domain) base URL for U. S. Soccer Federation
      * @return string
+     * @throws MalformedUrlException
      */
     protected function getAuthBaseUrl(): string
     {
@@ -489,10 +445,42 @@ class Auth0Client
      * OAuth2 `state` or `nonce`.
      *
      * @return string
+     * @throws RandomException
      */
     protected function genNewState(): string
     {
         return bin2hex(random_bytes(32));
+    }
+
+    /**
+     * Generate a code verifier for PKCE (Proof Key for Code Exchange).
+     * This must be a highly random string, containing only "A-Za-Z\-\._~", generated at the beginning of
+     * the login process, and will be verified later during the code exchange.
+     *
+     * The code verifier is used to produce the code challenge which is sent to the IdP immediately.
+     * During the code exchange step, the code verifier is sent to the IdP to then be encoded, hashed,
+     * and compared against the previously-given code challenge.
+     *
+     * See also: https://oauth.net/2/pkce/
+     * @return string
+     * @throws \Random\RandomException
+     */
+    protected function genCodeVerifier(): string
+    {
+        // Need to follow PKCE spec; strip disallowed characters
+        return rtrim(strtr(base64_encode(random_bytes(64)), '+/', '-_'), '=');
+    }
+
+    /**
+     * Given a code verifier, produces a code challenge. This is a base-64 encoded and sha-256 hashed
+     * version of the code verifier. This is the value sent to the IdP.
+     *
+     * @param string $codeVerifier
+     * @return string
+     */
+    protected function genCodeChallenge(string $codeVerifier): string
+    {
+        return rtrim(strtr(base64_encode(hash('sha256', $codeVerifier, true)), '+/', '-_'), '=');
     }
 
     /**
@@ -514,5 +502,62 @@ class Auth0Client
 
         $decoded = base64_decode($parts[1]);
         return json_decode($decoded, true, flags: JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * Given a token's claims, this verifies that the contents seem appropriate for the configuration.
+     * This ensures that the token was issued by the correct IdP tenant (iss), for the correct service (audience),
+     * and falls within its intended usage time (exp, nbf)
+     *
+     * Any indication that the token may be invalid will throw an exception.
+     *
+     * @param array $claims
+     * @return void
+     * @throws InvalidTokenClaimsException
+     * @throws MalformedUrlException
+     */
+    protected function verifyTokenClaims(array $claims): void
+    {
+        // Verify issuer
+        $expectedIss = rtrim($this->getAuthBaseUrl(), '/');
+        if (empty($claims['iss']) || rtrim($claims['iss'], '/') !== $expectedIss) {
+            $this->logger->debug(
+                'Invalid issuer encountered',
+                ['expected' => $expectedIss, 'received' => $claims['iss']]
+            );
+            throw new InvalidTokenClaimsException('Invalid issuer: ' . $claims['iss']);
+        }
+
+        // Verify audience
+        $audValidated = false;
+        $validAudiences = [$this->auth0Configuration->clientId, $this->auth0Configuration->audience];
+
+        if (!is_array($claims['aud'])) {
+            $claims['aud'] = [$claims['aud']];
+        }
+
+        $this->logger->debug('Checking audience validity', [
+            'expected_one_of' => $validAudiences,
+            'received' => $claims['aud']
+        ]);
+        foreach ($claims['aud'] as $aud) {
+            if (in_array($aud, $validAudiences)) {
+                $audValidated = true;
+            }
+        }
+
+        if (!$audValidated) {
+            throw new InvalidTokenClaimsException('Invalid audience');
+        }
+
+        // Verify expiry
+        if (empty($claims['exp']) || $claims['exp'] < time()) {
+            throw new InvalidTokenClaimsException('Token expired');
+        }
+
+        // Verify Not-Before
+        if (!empty($claims['nbf']) && $claims['nbf'] > time()) {
+            throw new InvalidTokenClaimsException('Token must not be accepted yet (NBF)');
+        }
     }
 }
