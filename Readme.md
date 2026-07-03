@@ -6,7 +6,7 @@
 
 ## Requirements
 
-- PHP 8+
+- PHP 8.2+
 - Any PSR-18 compatible HTTP client, such as Guzzle
 - Client ID & Secret from U.S. Soccer
 - An agreed-upon callback URL hosted by your application (for OAuth2 code exchange)
