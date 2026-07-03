@@ -248,9 +248,11 @@ class Auth0Client
         $session = new Auth0Session();
         $session->idToken = $decodedBody->id_token;
         $session->accessToken = $decodedBody->access_token;
-        $session->accessTokenScope = array_map(function ($item) {
-            return trim($item);
-        }, explode(' ', $decodedBody->scope ?? ''));
+        $session->accessTokenScope = !empty($decodedBody->scope)
+            ? array_map(function ($item) {
+                return trim($item);
+            }, explode(' ', $decodedBody->scope))
+            : [];
         $session->accessTokenExpiration = time() + (int)$decodedBody->expires_in;
         $session->accessTokenExpired = false; // todo: How can we set this?
         $session->refreshToken = $decodedBody->refresh_token ?? null;
@@ -553,7 +555,7 @@ class Auth0Client
         $audValidated = false;
         $validAudiences = [$this->auth0Configuration->clientId, $this->auth0Configuration->audience];
 
-        if (!is_array($claims['aud'])) {
+        if (isset($claims['aud']) && !is_array($claims['aud'])) {
             $claims['aud'] = [$claims['aud']];
         }
 
