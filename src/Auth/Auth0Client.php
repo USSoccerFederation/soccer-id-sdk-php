@@ -250,7 +250,7 @@ class Auth0Client
         $session->accessToken = $decodedBody->access_token;
         $session->accessTokenScope = array_map(function ($item) {
             return trim($item);
-        }, explode(' ', $decodedBody->scope));
+        }, explode(' ', $decodedBody->scope ?? ''));
         $session->accessTokenExpiration = time() + (int)$decodedBody->expires_in;
         $session->accessTokenExpired = false; // todo: How can we set this?
         $session->refreshToken = $decodedBody->refresh_token ?? null;
