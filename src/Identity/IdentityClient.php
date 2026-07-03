@@ -56,7 +56,6 @@ class IdentityClient
         }
 
         $body = $response->getBody()->getContents();
-        $this->logger->debug("Raw body: {$body}");
         try {
             $decoded = json_decode(
                 json: $body,
