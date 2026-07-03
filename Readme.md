@@ -24,6 +24,10 @@ authentication flows, token validation, and user session management with minimal
 a membership portal, a fan engagement platform, or an internal team tool, this SDK streamlines the authentication
 process, ensuring a secure and consistent login experience.
 
+## Upgrading
+
+Looking to upgrade from a previous version? See [Upgrade Guide](Upgrade%20Guide.md) for help.
+
 ## How it works
 
 Your application will complete the expected Auth0 login flow, then will interact with U.S. Soccer's Identity Service to
