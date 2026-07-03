@@ -561,7 +561,7 @@ class Auth0Client
 
         $this->logger->debug('Checking audience validity', [
             'expected_one_of' => $validAudiences,
-            'received' => $claims['aud']
+            'received' => $claims['aud'] ?? null
         ]);
         foreach ($claims['aud'] as $aud) {
             if (in_array($aud, $validAudiences)) {
