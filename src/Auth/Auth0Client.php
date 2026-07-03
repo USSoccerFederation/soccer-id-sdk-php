@@ -563,7 +563,7 @@ class Auth0Client
             'expected_one_of' => $validAudiences,
             'received' => $claims['aud'] ?? null
         ]);
-        foreach ($claims['aud'] as $aud) {
+        foreach (($claims['aud'] ?? []) as $aud) {
             if (in_array($aud, $validAudiences)) {
                 $audValidated = true;
             }
