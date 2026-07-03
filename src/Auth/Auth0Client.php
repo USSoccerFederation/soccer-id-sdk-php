@@ -508,12 +508,22 @@ class Auth0Client
     protected function extractTokenClaims(string $token): array
     {
         $parts = explode('.', $token);
-
         if (count($parts) < 3) {
             throw new Exception('Cannot decode JWT token: Invalid JWT structure');
         }
 
-        $decoded = base64_decode(strtr($parts[1], '-_', '+/'));
+        $payload = strtr($parts[1], '-_', '+/');
+        $remainder = strlen($payload) % 4;
+        if ($remainder > 0) { // required length to be a multiple of 4
+            $payload .= str_repeat('=', 4 - $remainder);
+        }
+
+        $this->logger->debug('extracting claims', [
+            'token' => $token,
+            'payload' => $payload,
+            'remainder' => $remainder,
+        ]);
+        $decoded = base64_decode($payload, true);
         if ($decoded === false) {
             throw new Exception('Payload contains invalid Base64 characters');
         }
