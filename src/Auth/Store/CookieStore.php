@@ -123,7 +123,7 @@ class CookieStore implements StoreInterface
         }
 
         $contents = $this->serialize();
-        setcookie($this->cookieName, $contents, [
+        $successful = setcookie($this->cookieName, $contents, [
             'path' => $this->cookiePath,
             'domain' => $this->cookieDomain,
             'samesite' => $this->cookieSamesite,
@@ -134,7 +134,7 @@ class CookieStore implements StoreInterface
 
         $this->dirty = false;
 
-        return true;
+        return $successful;
     }
 
     /**
