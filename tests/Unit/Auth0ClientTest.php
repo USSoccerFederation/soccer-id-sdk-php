@@ -8,7 +8,16 @@ use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Client;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Configuration;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Session;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\MemoryStore;
+use USSoccerFederation\UssfAuthSdkPhp\Exceptions\CodeException;
+use USSoccerFederation\UssfAuthSdkPhp\Exceptions\FailedCodeExchangeException;
+use USSoccerFederation\UssfAuthSdkPhp\Exceptions\StateException;
 use USSoccerFederation\UssfAuthSdkPhp\Logging\StdoutLogger;
+
+afterEach(function () {
+    $_GET = [];
+    $_SESSION = [];
+    $_COOKIE = [];
+});
 
 test('can callback', function () {
     $_GET['state'] = 'unittest|state';
@@ -18,6 +27,7 @@ test('can callback', function () {
     $transientStore->set('state', $_GET['state']);
     $transientStore->set('code', $_GET['code']);
     $transientStore->set('nonce', $nonce);
+    $transientStore->set('code_verifier', 'unittest|pkce');
 
     $mockHttpClient = Mockery::mock(ClientInterface::class);
     $mockHttpClient->expects('sendRequest')->andReturnUsing(function () use ($nonce) {
@@ -70,6 +80,87 @@ test('can callback', function () {
     expect($session)->toBeInstanceOf(Auth0Session::class)
         ->and($session->user['sub'])->toBe('unittest');
 });
+
+test('exchange fails if given invalid state', function () {
+    $transientStore = new MemoryStore();
+    $transientStore->set('state', 'unittest|state');
+    $transientStore->set('code', 'unittest|code');
+    $transientStore->set('nonce', 'unittest|nonce');
+    $transientStore->set('code_verifier', 'unittest|pkce');
+
+    $mockHttpClient = Mockery::mock(ClientInterface::class);
+    $logger = new StdoutLogger();
+    $conf = new Auth0Configuration(
+        domain: 'http://127.0.0.1/',
+        clientId: 'unittest',
+        clientSecret: 'secret',
+        cookieSecret: 'secret',
+        baseUrl: 'http://127.0.0.1:8000',
+        audience: 'http://127.0.0.1/',
+    );
+    $ussfAuth = new Auth0Client(
+        auth0Configuration: $conf,
+        httpClient: $mockHttpClient,
+        transientStore: $transientStore,
+        statefulStore: new MemoryStore(),
+        logger: $logger
+    );
+    $ussfAuth->exchange('/', 'unittest|code', 'unittest-INVALID|state');
+})->throws(StateException::class);
+
+test('exchange fails if given invalid code', function () {
+    $transientStore = new MemoryStore();
+    $transientStore->set('state', 'unittest|state');
+    $transientStore->set('code', 'unittest|code');
+    $transientStore->set('nonce', 'unittest|nonce');
+    $transientStore->set('code_verifier', 'unittest|pkce');
+
+    $mockHttpClient = Mockery::mock(ClientInterface::class);
+    $logger = new StdoutLogger();
+    $conf = new Auth0Configuration(
+        domain: 'http://127.0.0.1/',
+        clientId: 'unittest',
+        clientSecret: 'secret',
+        cookieSecret: 'secret',
+        baseUrl: 'http://127.0.0.1:8000',
+        audience: 'http://127.0.0.1/',
+    );
+    $ussfAuth = new Auth0Client(
+        auth0Configuration: $conf,
+        httpClient: $mockHttpClient,
+        transientStore: $transientStore,
+        statefulStore: new MemoryStore(),
+        logger: $logger
+    );
+    $ussfAuth->exchange('/', null, 'unittest|state');
+})->throws(CodeException::class);
+
+test('exchange fails if PKCE is missing', function () {
+    $transientStore = new MemoryStore();
+    $transientStore->set('state', 'unittest|state');
+    $transientStore->set('code', 'unittest|code');
+    $transientStore->set('nonce', 'unittest|nonce');
+    // Note: did not set code_verifier
+
+    $mockHttpClient = Mockery::mock(ClientInterface::class);
+    $logger = new StdoutLogger();
+    $conf = new Auth0Configuration(
+        domain: 'http://127.0.0.1/',
+        clientId: 'unittest',
+        clientSecret: 'secret',
+        cookieSecret: 'secret',
+        baseUrl: 'http://127.0.0.1:8000',
+        audience: 'http://127.0.0.1/',
+    );
+    $ussfAuth = new Auth0Client(
+        auth0Configuration: $conf,
+        httpClient: $mockHttpClient,
+        transientStore: $transientStore,
+        statefulStore: new MemoryStore(),
+        logger: $logger
+    );
+    $ussfAuth->exchange('/', 'unittest|code', 'unittest|state');
+})->throws(FailedCodeExchangeException::class);
 
 test('flushStores terminates the user session', function () {
     $session = Auth0Session::fromStdObject(

@@ -4,6 +4,10 @@ use USSoccerFederation\UssfAuthSdkPhp\Helpers\Http;
 
 covers(Http::class);
 
+afterEach(function () {
+    $_SESSION = [];
+});
+
 it('can determine host', function () {
     $_SERVER = ['HTTP_HOST' => 'www.example.com', 'HTTPS' => 'on'];
     $result = Http::determineHttpHost();
@@ -12,7 +16,6 @@ it('can determine host', function () {
     $_SERVER = ['SERVER_NAME' => 'www.myapp.com', 'HTTPS' => 'off'];
     $result = Http::determineHttpHost();
     expect($result)->toBe('http://www.myapp.com');
-    $_SERVER = []; // cleanup
 });
 
 it('can extract schema from url', function (string $url, bool $hasSchema) {
@@ -93,7 +96,6 @@ it('can trust proxies', function (array $trustedProxies, bool $expectedResult) {
     $_SERVER['HTTP_HOST'] = '10.1.5.16'; // Shouldn't be hit unless we don't trust the proxy
 
     expect(Http::determineHttpHost($trustedProxies) === 'https://www.myapp.com')->toBe($expectedResult);
-    $_SERVER = []; // Cleanup
 })->with([
     [['*'], true], // Always trusted
     [['10.1.5.16'], true], // Exact match

@@ -177,6 +177,9 @@ class Auth0Client
         // If PKCE is enabled, include it in the payload to the IdP for verification
         // against the code_challenge that was previously sent.
         if ($this->auth0Configuration->usePkce) {
+            if (empty($originalCodeVerifier)) {
+                throw new FailedCodeExchangeException('Missing PKCE code_verifier');
+            }
             $params['code_verifier'] = $originalCodeVerifier;
         }
 

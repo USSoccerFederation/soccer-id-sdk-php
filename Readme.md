@@ -252,7 +252,7 @@ $session = $authClient->getSession();
 $loggedIn = ($session !== null);
 
 if( $loggedIn ) {
-    $userId = $esssion->user['sub'];
+    $userId = $session->user['sub'];
     $userEmail = $session->user['email'] ?? null; // Should work if the `email` claim was requested
     $accessToken = $session->accessToken;
     $idToken = $session->idToken;
