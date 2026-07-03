@@ -132,7 +132,9 @@ class CookieStore implements StoreInterface
             'expires' => time() + static::COOKIE_EXPIRE_SECONDS,
         ]);
 
-        $this->dirty = false;
+        if ($successful) {
+            $this->dirty = false;
+        }
 
         return $successful;
     }
