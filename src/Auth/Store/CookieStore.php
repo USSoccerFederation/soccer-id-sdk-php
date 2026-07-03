@@ -3,6 +3,7 @@
 namespace USSoccerFederation\UssfAuthSdkPhp\Auth\Store;
 
 use Random\RandomException;
+use Throwable;
 use USSoccerFederation\UssfAuthSdkPhp\Helpers\Http;
 
 /**
@@ -21,9 +22,6 @@ class CookieStore implements StoreInterface
 
 
     private string $cookieName = self::DEFAULT_COOKIE_NAME;
-    private string $cookiePath = '/';
-    private string $cookieDomain = '';
-    private string $cookieSamesite = 'Lax';
     private ?string $cookieKey = null;
     private bool $encrypted = false;
     private array $store = [];
@@ -32,9 +30,9 @@ class CookieStore implements StoreInterface
     public function __construct(
         ?string $cookieName = null,
         ?string $cookieSecret = null,
-        string $cookiePath = '/',
-        string $cookieDomain = '',
-        string $cookieSamesite = 'Lax',
+        private string $cookiePath = '/',
+        private string $cookieDomain = '',
+        private string $cookieSamesite = 'Lax',
     ) {
         $this->cookieName = $cookieName ?? self::DEFAULT_COOKIE_NAME;
         if ($cookieSecret !== null) {
@@ -78,7 +76,12 @@ class CookieStore implements StoreInterface
             return;
         }
 
-        $this->deserialize($contents);
+        try {
+            $this->deserialize($contents);
+        } catch (Throwable $e) {
+            $this->store = [];
+            $this->dirty = false;
+        }
     }
 
     public function get(string $key, $default = null)
