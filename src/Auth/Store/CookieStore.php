@@ -21,6 +21,9 @@ class CookieStore implements StoreInterface
 
 
     private string $cookieName = self::DEFAULT_COOKIE_NAME;
+    private string $cookiePath = '/';
+    private string $cookieDomain = '';
+    private string $cookieSamesite = 'Lax';
     private ?string $cookieKey = null;
     private bool $encrypted = false;
     private array $store = [];
@@ -29,11 +32,18 @@ class CookieStore implements StoreInterface
     public function __construct(
         ?string $cookieName = null,
         ?string $cookieSecret = null,
+        string $cookiePath = '/',
+        string $cookieDomain = '',
+        string $cookieSamesite = 'Lax',
     ) {
         $this->cookieName = $cookieName ?? self::DEFAULT_COOKIE_NAME;
         if ($cookieSecret !== null) {
             $this->setEncryptionSecret($cookieSecret);
         }
+
+        $this->cookiePath = $cookiePath;
+        $this->cookieDomain = $cookieDomain;
+        $cookieSamesite = $cookieSamesite;
 
         $this->rehydrate();
     }
@@ -100,6 +110,8 @@ class CookieStore implements StoreInterface
      * It is recommended to try and call this only once per client-request where possible by batching together
      * several writes (`set()`) before calling `save()`.
      * @return bool
+     * @throws RandomException
+     * @throws \JsonException
      */
     public function save(): bool
     {
@@ -108,13 +120,14 @@ class CookieStore implements StoreInterface
         }
 
         $contents = $this->serialize();
-        setcookie(
-            name: $this->cookieName,
-            value: $contents,
-            expires_or_options: time() + static::COOKIE_EXPIRE_SECONDS,
-            secure: $this->isSecure(),
-            httponly: true,
-        );
+        setcookie($this->cookieName, $contents, [
+            'path' => $this->cookiePath,
+            'domain' => $this->cookieDomain,
+            'samesite' => $this->cookieSamesite,
+            'secure' => $this->isSecure(),
+            'httponly' => true,
+            'expires' => time() + static::COOKIE_EXPIRE_SECONDS,
+        ]);
 
         $this->dirty = false;
 
