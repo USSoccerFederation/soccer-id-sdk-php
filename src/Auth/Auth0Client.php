@@ -510,10 +510,13 @@ class Auth0Client
         $parts = explode('.', $token);
 
         if (count($parts) < 3) {
-            throw new Exception('Cannot decode JWT token');
+            throw new Exception('Cannot decode JWT token: Invalid JWT structure');
         }
 
-        $decoded = base64_decode($parts[1]);
+        $decoded = base64_decode(strtr($parts[1], '-_', '+/'));
+        if ($decoded === false) {
+            throw new Exception('Payload contains invalid Base64 characters');
+        }
         return json_decode($decoded, true, flags: JSON_THROW_ON_ERROR);
     }
 
