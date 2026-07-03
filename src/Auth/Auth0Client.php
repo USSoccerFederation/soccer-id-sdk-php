@@ -226,6 +226,10 @@ class Auth0Client
         $accessTokenClaims = $this->extractTokenClaims($decodedBody->access_token);
         $idTokenClaims = empty($decodedBody->id_token) ? [] : $this->extractTokenClaims($decodedBody->id_token);
 
+        if (!empty($nonce) && $nonce !== ($idTokenClaims['nonce'] ?? null)) {
+            throw new StateException('Invalid nonce');
+        }
+
         if (empty($accessTokenClaims)) {
             $this->flushStores();
             throw new StateException('Missing or invalid accessToken');
