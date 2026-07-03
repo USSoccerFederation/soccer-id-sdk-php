@@ -7,6 +7,8 @@
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Client;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Configuration;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\SessionStore;
+use USSoccerFederation\UssfAuthSdkPhp\Identity\IdentityClient;
+use USSoccerFederation\UssfAuthSdkPhp\Identity\IdentityClientConfiguration;
 use USSoccerFederation\UssfAuthSdkPhp\Logging\StdoutLogger;
 use USSoccerFederation\UssfAuthSdkPhp\UssfAuth;
 
@@ -56,10 +58,10 @@ function getUssfAuth(): UssfAuth
                 statefulStore: $sessionStore,
                 logger: $logger,
             ),
-            identity: null, /*new IdentityClient(
+            identity: new IdentityClient(
                 configuration: IdentityClientConfiguration::fromEnv(),
                 logger: $logger
-            ),*/
+            ),
         );
     }
 

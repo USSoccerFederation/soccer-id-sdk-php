@@ -67,7 +67,7 @@ class IdentityClient
             throw new ApiException($e->getMessage(), $e->getCode(), $e);
         }
 
-        return $decoded->data ?? null;
+        return $decoded ?? null;
     }
 
     /**

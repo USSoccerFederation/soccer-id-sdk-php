@@ -20,16 +20,22 @@
             You are logged in as <?php echo htmlspecialchars($session->user['email'] ?? $session->user['sub']); ?> &nbsp; | &nbsp;
             <a href="/logout.php">Log out</a>
 
-            <h2 style="margin-top: 4em;">Profile</h2>
-            <strong>Name:</strong> <?php echo htmlspecialchars($profile?->user_metadata->profile->firstName ?? ''); ?>
-            <?php echo htmlspecialchars($profile->user_metadata->profile->lastName ?? ''); ?><br />
-
-            <strong>DOB:</strong> <?php echo htmlspecialchars($profile?->user_metadata->profile->birthDate ?? ''); ?>
-
             <h2 style="margin-top: 4em;">Raw session</h2>
             <div style="text-align: left">
                 <?php dump($session); ?>
             </div>
+
+            <h2 style="margin-top: 2em;">Profile</h2>
+            <strong>Name:</strong> <?php echo htmlspecialchars($profile?->first_name ?? 'firstname not set'); ?>
+            <?php echo htmlspecialchars($profile->last_name ?? 'lastname not set'); ?><br />
+
+            <strong>DOB:</strong> <?php echo htmlspecialchars($profile?->date_of_birth ?? 'DOB not set'); ?>
+
+            <h2 style="margin-top: 2em;">Raw Profile</h2>
+            <div style="text-align: left">
+                <?php dump($profile); ?>
+            </div>
+
         <?php else:?>
             <a href="/login.php">Log in via U.S. Soccer</a>
         <?php endif;?>
