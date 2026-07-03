@@ -517,12 +517,7 @@ class Auth0Client
         if ($remainder > 0) { // required length to be a multiple of 4
             $payload .= str_repeat('=', 4 - $remainder);
         }
-
-        $this->logger->debug('extracting claims', [
-            'token' => $token,
-            'payload' => $payload,
-            'remainder' => $remainder,
-        ]);
+        
         $decoded = base64_decode($payload, true);
         if ($decoded === false) {
             throw new Exception('Payload contains invalid Base64 characters');
