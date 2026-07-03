@@ -11,8 +11,16 @@ use USSoccerFederation\UssfAuthSdkPhp\Logging\StdoutLogger;
 use USSoccerFederation\UssfAuthSdkPhp\UssfAuth;
 
 require_once "../vendor/autoload.php";
+
+/*
+ * Note that the usage of .env file is entirely optional. You may choose to manually
+ * configure your auth client rather than relying on loading them using  `fromEnv()`.
+ *
+ * For example purposes, we will assume the usage of .env files, so you'll want to
+ * have installed vlucas/phpdotenv via composer.
+ */
 $envPath = __DIR__ . '/../';
-if (file_exists("{$envPath}/.env")) {
+if (file_exists("{$envPath}/.env") && class_exists('Dotenv\Dotenv')) {
     (Dotenv\Dotenv::createImmutable($envPath))->load();
 }
 
