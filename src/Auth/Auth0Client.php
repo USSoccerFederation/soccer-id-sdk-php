@@ -326,6 +326,7 @@ class Auth0Client
         $this->statefulStore->clear();
         $this->transientStore->clear();
         $this->transientStore->save();
+        $this->auth0Session = null;
     }
 
     /**

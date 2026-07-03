@@ -1,7 +1,9 @@
 <?php
 
 use GuzzleHttp\Psr7\Response;
+use Http\Discovery\Psr18ClientDiscovery;
 use Psr\Http\Client\ClientInterface;
+use Psr\Log\NullLogger;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Client;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Configuration;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Session;
@@ -67,4 +69,34 @@ test('can callback', function () {
 
     expect($session)->toBeInstanceOf(Auth0Session::class)
         ->and($session->user['sub'])->toBe('unittest');
+});
+
+test('flushStores terminates the user session', function () {
+    $session = Auth0Session::fromStdObject(
+        (object)[
+            'user' => [],
+            'idToken' => 'UnitTestIdToken',
+            'accessToken' => 'UnitTestAccessToken',
+            'accessTokenScope' => ['openid', 'profile', 'email'],
+            'accessTokenExpiration' => time() + 3600,
+            'accessTokenExpired' => false,
+            'refreshToken' => null,
+            'backchannel' => '',
+        ]
+    );
+
+    $statefulStore = new MemoryStore();
+    $statefulStore->set('session', $session);
+
+    $client = Mockery::mock(Auth0Client::class, [
+        new Auth0Configuration('localhost', 'clientId', 'clientSecret', 'cookieSecret', 'http://127.0.0.1:8000'),
+        Psr18ClientDiscovery::find(),
+        new MemoryStore(),
+        $statefulStore,
+        new NullLogger(),
+    ])->makePartial();
+
+    expect($client->getSession())->toBeInstanceOf(Auth0Session::class);
+    $client->flushStores();
+    expect($client->getSession())->toBeNull();
 });
