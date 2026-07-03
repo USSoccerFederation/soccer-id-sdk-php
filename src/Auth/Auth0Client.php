@@ -103,7 +103,7 @@ class Auth0Client
         $code = !empty($_GET['code']) ? trim($_GET['code']) : null;
 
         try {
-            $redirectUri = $this->getRedirectUri();
+            $redirectUri = $this->getLogoutRedirectUri();
             return $this->exchange($redirectUri, $code, $state);
         } catch (StateException|CodeException|FailedCodeExchangeException $e) {
             // This can happen if something is misconfigured, or if a user reloads the callback page (reusing state).
@@ -113,8 +113,6 @@ class Auth0Client
                     'type' => get_class($e),
                     'file' => $e->getFile(),
                     'line' => $e->getLine(),
-                    'code' => $code,
-                    'state' => $state,
                     'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
                 ]
             );
@@ -356,7 +354,9 @@ class Auth0Client
      */
     protected function getCallbackRoute(): string
     {
-        return (new Path($this->getBaseUrl()))->join($this->auth0Configuration->callbackRoute);
+        return (new Path($this->getBaseUrl()))
+            ->join($this->auth0Configuration->callbackRoute)
+            ->toString();
     }
 
     /**
@@ -364,12 +364,12 @@ class Auth0Client
      * @return string
      * @throws MalformedUrlException
      */
-    protected function getRedirectUri(): string
+    protected function getLogoutRedirectUri(): string
     {
         $redirectUri = $this->auth0Configuration->redirectUri;
         if (empty($redirectUri) || $redirectUri === '/' || !Http::urlHasSchema($redirectUri)) {
             $redirectUri = (new Path($this->getBaseUrl()))
-                ->join($this->auth0Configuration->callbackRoute)
+                ->join($this->auth0Configuration->redirectUri)
                 ->toString();
         }
 
@@ -401,7 +401,7 @@ class Auth0Client
         ?string $codeChallenge = null,
         ?string $nonce = null,
     ): string {
-        $redirectUri = $this->getRedirectUri();
+        $redirectUri = $this->getCallbackRoute();
 
         $params = [
             'response_mode' => 'query',
