@@ -57,6 +57,7 @@ class CookieStore implements StoreInterface
     /**
      * Restores the cookie store from its cookie.
      * @return void
+     * @throws \Exception
      */
     public function rehydrate(): void
     {

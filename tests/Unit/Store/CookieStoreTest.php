@@ -4,6 +4,10 @@ use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\CookieStore;
 
 covers(CookieStore::class);
 
+afterEach(function () {
+    $_COOKIE = [];
+});
+
 it('can serialize and deserialize', function () {
     $store = new CookieStore('unittest', 'secret');
     $store->set('hello', 'world');
@@ -61,7 +65,7 @@ it('performs decryption when rehydrating', function () {
     $store->set('hello', 'world');
     $serialized = $store->serialize();
     $_COOKIE[$cookieName] = $serialized;
-    $store->expects('decrypt')->once()->andReturn(serialize(['hello' => 'world']));
+    $store->expects('decrypt')->once()->andReturn(json_encode(['hello' => 'world']));
 
     $store->rehydrate();
 });
