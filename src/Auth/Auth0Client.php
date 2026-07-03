@@ -103,7 +103,7 @@ class Auth0Client
         $code = !empty($_GET['code']) ? trim($_GET['code']) : null;
 
         try {
-            $redirectUri = $this->getLogoutRedirectUri();
+            $redirectUri = $this->getCallbackRoute();
             return $this->exchange($redirectUri, $code, $state);
         } catch (StateException|CodeException|FailedCodeExchangeException $e) {
             // This can happen if something is misconfigured, or if a user reloads the callback page (reusing state).
