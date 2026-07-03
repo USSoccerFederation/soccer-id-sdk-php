@@ -2,6 +2,7 @@
 
 namespace USSoccerFederation\UssfAuthSdkPhp\Auth\Store;
 
+use Random\RandomException;
 use USSoccerFederation\UssfAuthSdkPhp\Helpers\Http;
 
 /**
@@ -124,10 +125,12 @@ class CookieStore implements StoreInterface
      * have already had encryption applied.
      *
      * @return string
+     * @throws \JsonException
+     * @throws RandomException
      */
     public function serialize(): string
     {
-        $contents = serialize($this->store);
+        $contents = json_encode($this->store, flags: JSON_THROW_ON_ERROR);
         if ($this->encrypted) {
             $contents = $this->encrypt($contents);
         }
@@ -156,7 +159,7 @@ class CookieStore implements StoreInterface
             }
         }
 
-        $this->store = unserialize($contents);
+        $this->store = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
         $this->dirty = false;
     }
 
