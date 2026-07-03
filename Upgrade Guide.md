@@ -18,7 +18,8 @@ be able to read and update Profiles again.
 New configuration options have been made available with version 2.0. If you would like to take advantage of these,
 you may either add to your `.env` (if using `vlucas/phpdotenv`), or update the construction of `Auth0Configuration`.
 
-Both of these are entirely optional and safe defaults will be chosen for you if you prefer to not make any modification.
+These new configurations are entirely optional and safe defaults will be chosen for you if you prefer to not
+make any modification.
 
 `.env` update:
 
@@ -34,6 +35,13 @@ USSF_AUTH0_USE_PKCE=true
 # Set to `false`, `no`, `0`, or leave empty to disable
 # Defaults to being turned off if not set
 USSF_AUTH0_ALWAYS_PROMPT_FOR_CONSENT=
+
+# (Optional) If behind a reverse proxy, specify them as a comma-delimited list.
+# While "*" is valid to accept any proxy, you must ensure that you protect against
+# header injection attacks by configuring your gateway to strip X-Forwarded-* headers
+# originating from outside of your own network.
+# Example: USSF_AUTH_TRUSTED_PROXIES=10.0.0.5,10.0.0.6,192.168.1.100
+USSF_AUTH_TRUSTED_PROXIES=
 ```
 
 `Auth0Configuration` construction:
@@ -42,7 +50,8 @@ USSF_AUTH0_ALWAYS_PROMPT_FOR_CONSENT=
 $config = new \USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Configuration(
     // ... existing properties unchanged
     usePkce: true,
-    alwaysPromptForConsent: false
+    alwaysPromptForConsent: false,
+    trustedProxies: []
 );
 ```
 

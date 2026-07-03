@@ -339,7 +339,7 @@ class Auth0Client
             return $this->auth0Configuration->baseUrl;
         }
 
-        $url = Http::determineHttpHost();
+        $url = Http::determineHttpHost($this->auth0Configuration->trustedProxies);
         if ($url !== null) {
             return $url;
         }

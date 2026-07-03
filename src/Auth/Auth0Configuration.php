@@ -17,6 +17,7 @@ class Auth0Configuration
         public string $redirectUri = '/',
         public bool $usePkce = true,
         public bool $alwaysPromptForConsent = false,
+        public array $trustedProxies = [],
     ) {
         $this->validate();
     }
@@ -52,6 +53,12 @@ class Auth0Configuration
                 ['true', 'yes', '1']
             );
 
+        $trustedProxies = !empty($_ENV['USSF_AUTH_TRUSTED_PROXIES'])
+            ? explode(',', $_ENV['USSF_AUTH_TRUSTED_PROXIES'])
+            : [];
+
+        $trustedProxies = array_map('trim', $trustedProxies);
+
         return new self(
             domain: !empty($_ENV['USSF_AUTH0_DOMAIN'])
                 ? $_ENV['USSF_AUTH0_DOMAIN']
@@ -82,6 +89,7 @@ class Auth0Configuration
             redirectUri: $_ENV['USSF_AUTH0_REDIRECT_URI'] ?? '/',
             usePkce: $usePkce,
             alwaysPromptForConsent: $promptForConsent,
+            trustedProxies: $trustedProxies,
         );
     }
 }

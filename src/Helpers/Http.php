@@ -7,12 +7,35 @@ use USSoccerFederation\UssfAuthSdkPhp\Exceptions\MalformedUrlException;
 class Http
 {
     /**
-     * Returns the host (schema + domain) being requested
+     * Returns the host (schema + domain) being requested.
+     * If `$trustedProxies` is given, this will allow a reverse proxy
+     * @param array $trustedProxies
      * @return string|null
+     * @throws MalformedUrlException
      */
-    public static function determineHttpHost(): ?string
+    public static function determineHttpHost(array $trustedProxies = []): ?string
     {
+        // Allow reverse proxy, if it is trusted
+        $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
         $schema = static::getHttpSchema();
+        $isTrusted = in_array('*', $trustedProxies, true);
+        if (!$isTrusted) {
+            foreach ($trustedProxies as $proxy) {
+                if (static::isIpInCidrNetwork($remoteAddr, $proxy)) {
+                    $isTrusted = true;
+                    break;
+                }
+            }
+        }
+
+        if ($isTrusted && !empty($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+            $host = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_HOST'])[0]);
+
+            $schema = strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $schema);
+            return static::autoPrefixSchema($host, $schema === 'https');
+        }
+
+        // If not behind a trusted reverse proxy, use the server name/domain being accessed
         if (!empty($_SERVER['HTTP_HOST'])) {
             return "{$schema}://" . htmlspecialchars($_SERVER['HTTP_HOST']);
         }
@@ -26,6 +49,23 @@ class Http
         }
 
         return null;
+    }
+
+    public static function isIpInCidrNetwork(string $ip, string $network): bool
+    {
+        if (!str_contains($network, '/')) {
+            return $ip === $network;
+        }
+
+        $parts = explode('/', $network, 2);
+        $subnet = $parts[0];
+        $bits = $parts[1];
+        $ip = ip2long($ip);
+        $subnet = ip2long($subnet);
+        $mask = -1 << (32 - (int)$bits);
+        $subnet &= $mask;
+
+        return ($ip & $mask) === $subnet;
     }
 
     /**
