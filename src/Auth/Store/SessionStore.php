@@ -18,8 +18,12 @@ class SessionStore implements StoreInterface
         $this->init();
     }
 
-    public function init()
+    public function init(): void
     {
+        if (session_status() !== PHP_SESSION_NONE) {
+            return;
+        }
+
         session_register_shutdown();
         session_start([
             'cookie_lifetime' => $this->cookieTtlSeconds,

@@ -149,7 +149,7 @@ class CookieStore implements StoreInterface
         if ($this->encrypted) {
             $contents = $this->decrypt($contents);
 
-            if ($contents === false) {
+            if ($contents === null) {
                 $this->store = [];
                 $this->dirty = false;
                 return;

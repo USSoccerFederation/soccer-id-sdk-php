@@ -99,14 +99,8 @@ class Auth0Client
      */
     public function callback(): Auth0Session
     {
-        $state = trim($_GET['state']);
-        $code = trim($_GET['code']);
-        $this->logger->debug('Starting Auth0 Callback', [
-            'session_id' => session_id(),
-            'state' => $state,
-            'code' => $code,
-        ]);
-
+        $state = !empty($_GET['state']) ? trim($_GET['state']) : null;
+        $code = !empty($_GET['code']) ? trim($_GET['code']) : null;
 
         try {
             $redirectUri = $this->getRedirectUri();
@@ -180,6 +174,8 @@ class Auth0Client
             'code' => $code
         ];
 
+        // If PKCE is enabled, include it in the payload to the IdP for verification
+        // against the code_challenge that was previously sent.
         if ($this->auth0Configuration->usePkce) {
             $params['code_verifier'] = $originalCodeVerifier;
         }
@@ -363,11 +359,12 @@ class Auth0Client
     /**
      * Get the fully-formed redirect URI of your application - where the user should be sent after logging out.
      * @return string
+     * @throws MalformedUrlException
      */
     protected function getRedirectUri(): string
     {
         $redirectUri = $this->auth0Configuration->redirectUri;
-        if (empty($redirectUri) || $redirectUri === '/') {
+        if (empty($redirectUri) || $redirectUri === '/' || !Http::urlHasSchema($redirectUri)) {
             $redirectUri = (new Path($this->getBaseUrl()))
                 ->join($this->auth0Configuration->callbackRoute)
                 ->toString();
