@@ -7,6 +7,7 @@ use Psr\Log\NullLogger;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Client;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Configuration;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Session;
+use USSoccerFederation\UssfAuthSdkPhp\Auth\JwksVerifier;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\MemoryStore;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\CodeException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\FailedCodeExchangeException;
@@ -59,6 +60,9 @@ test('can callback', function () {
         return $response;
     });
 
+    $mockJwksVerifier = Mockery::mock(JwksVerifier::class)->makePartial();
+    $mockJwksVerifier->allows('verifyToken')->andReturn(true);
+
     $logger = new StdoutLogger();
     $conf = new Auth0Configuration(
         domain: 'http://127.0.0.1/',
@@ -73,7 +77,8 @@ test('can callback', function () {
         httpClient: $mockHttpClient,
         transientStore: $transientStore,
         statefulStore: new MemoryStore(),
-        logger: $logger
+        logger: $logger,
+        jwksVerifier: $mockJwksVerifier
     );
     $session = $ussfAuth->callback();
 

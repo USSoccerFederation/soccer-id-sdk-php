@@ -30,12 +30,14 @@
     "php": ">=8.2",
     "php-http/discovery": "^1.20",
     "http-interop/http-factory-guzzle": "^1.2",
-    "ext-openssl": "*"
+    "ext-openssl": "*",
+    "symfony/cache": "^7.4"
   },
   "suggest": {
     "guzzlehttp/guzzle": "Needed for default HTTP client support",
     "guzzlehttp/psr7": "Provides PSR-7 implementation for Guzzle",
-    "vlucas/phpdotenv": "Used to load configuration from .env files"
+    "vlucas/phpdotenv": "Used to load configuration from .env files",
+    "psr/cache-implementation": "Used to cache often-used data, such as JWKS info"
   },
   "config": {
     "allow-plugins": {

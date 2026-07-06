@@ -18,6 +18,8 @@ use Throwable;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\CookieStore;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\SessionStore;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\StoreInterface;
+use USSoccerFederation\UssfAuthSdkPhp\Cache\Pool\FilesystemCacheItemPool;
+use USSoccerFederation\UssfAuthSdkPhp\Cache\Pool\MemoryCacheItemPool;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\CodeException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\FailedCodeExchangeException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\InvalidTokenClaimsException;
@@ -35,6 +37,7 @@ class Auth0Client
     const USSF_GATEWAY = 'https://gateway.ussoccer.com';
     const AUTHORIZE_ENDPOINT = 'authorize';
     const TOKEN_ENDPOINT = 'oauth/token';
+    const JWKS_ENDPOINT = '/.well-known/jwks.json';
 
     protected RequestFactoryInterface $requestFactory;
     protected StreamFactoryInterface $streamFactory;
@@ -47,6 +50,7 @@ class Auth0Client
         protected ?StoreInterface $transientStore = null,
         protected ?StoreInterface $statefulStore = null,
         protected ?LoggerInterface $logger = null,
+        protected ?JwksVerifier $jwksVerifier = null
     ) {
         $this->httpClient = $httpClient ?? Psr18ClientDiscovery::find();
         $this->requestFactory = Psr17FactoryDiscovery::findRequestFactory();
@@ -54,9 +58,19 @@ class Auth0Client
 
         $this->statefulStore = $statefulStore ?? new SessionStore();
         $this->logger = $logger ?? new NullLogger();
+
         $this->transientStore = $transientStore ?? new CookieStore(
             cookieName: 'transient_ussf_soccerid',
             cookieSecret: $this->auth0Configuration->cookieSecret
+        );
+
+        $jwksUri = (new Path($this->getAuthBaseUrl()))
+            ->join(static::JWKS_ENDPOINT)
+            ->toString();
+
+        $this->jwksVerifier = $jwksVerifier ?? new JwksVerifier(
+            new JwksProvider($jwksUri, new FilesystemCacheItemPool()),
+            $this->auth0Configuration->clientSecret,
         );
     }
 
@@ -231,6 +245,9 @@ class Auth0Client
             $this->flushStores();
             throw new StateException('Missing or invalid accessToken');
         }
+
+        $this->jwksVerifier->verifyToken($decodedBody->access_token);
+        $this->jwksVerifier->verifyToken($decodedBody->id_token);
 
         $this->verifyTokenClaims($accessTokenClaims);
         $this->verifyTokenClaims($idTokenClaims);
