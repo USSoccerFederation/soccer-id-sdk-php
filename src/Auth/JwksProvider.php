@@ -62,7 +62,7 @@ class JwksProvider
         $cached = $this->cacheItemPool->getItem($this->getCacheKeyName());
         $cached->set($mapped);
         $cached->expiresAfter(self::CACHE_TLL_SECONDS);
-        $this->cacheItemPool->saveDeferred($cached);
+        $this->cacheItemPool->save($cached);
 
         return $mapped;
     }
