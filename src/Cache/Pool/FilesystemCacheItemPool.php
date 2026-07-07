@@ -30,11 +30,17 @@ class FilesystemCacheItemPool implements CacheItemPoolInterface
     {
         $file = $this->getFilePath($key);
         if (file_exists($file)) {
-            $data = unserialize(file_get_contents($file));
-            if ($data['expires'] === null || $data['expires'] > time()) {
-                return new FilesystemCacheItem($key, $data['value'], true, $data['expires']);
+            $data = json_decode(file_get_contents($file), associative: true);
+
+            if (is_array($data)) { // Ensure that we decoded it properly
+                if (
+                    $data['expires'] === null || $data['expires'] > time() // Check if still valid (not expired)
+                ) {
+                    return new FilesystemCacheItem($key, $data['value'], true, $data['expires']);
+                }
             }
-            unlink($file);
+
+            unlink($file); // Expired or malformed get rid of it
         }
 
         return new FilesystemCacheItem($key, null, false, null);
@@ -53,7 +59,7 @@ class FilesystemCacheItemPool implements CacheItemPoolInterface
 
         file_put_contents(
             $this->getFilePath($item->getKey()),
-            serialize($data)
+            json_encode($data, flags: JSON_THROW_ON_ERROR)
         );
 
         return true;
