@@ -20,7 +20,7 @@ class JwksVerifier
 
     public function __construct(
         protected JwksProvider $jwksProvider,
-        protected ?string $clientSecret,
+        protected string $clientSecret,
     ) {
     }
 
