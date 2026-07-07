@@ -107,3 +107,20 @@ it('can trust proxies', function (array $trustedProxies, bool $expectedResult) {
     [['10.1.20.0/24'], false], // Outside CIDR block
     [['10.1.5.3', '10.1.5.5', '10.1.5.15', '10.1.5.24'], false], // Not in list
 ]);
+
+it('can get schema', function () {
+    $_SERVER = ['HTTPS' => 'off'];
+    expect(Http::getHttpSchema())->toBe('http');
+
+    $_SERVER = ['HTTPS' => 'on'];
+    expect(Http::getHttpSchema())->toBe('https');
+
+    $_SERVER = ['HTTP_X_FORWARDED_PROTO' => 'https'];
+    expect(Http::getHttpSchema())->toBe('https');
+
+    $_SERVER = ['SERVER_PORT' => 443];
+    expect(Http::getHttpSchema())->toBe('https');
+
+    $_SERVER = ['SERVER_PORT' => '443'];
+    expect(Http::getHttpSchema())->toBe('https');
+});

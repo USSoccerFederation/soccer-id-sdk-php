@@ -80,11 +80,11 @@ class Http
         }
 
         // HTTP_X_FORWARDED_PROTO can only upgrade protocol to HTTPS; never downgrade.
-        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+        if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') {
             return 'https';
         }
 
-        if (!empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] === 443) {
+        if (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443) {
             return 'https';
         }
 
