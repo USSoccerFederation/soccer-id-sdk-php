@@ -24,14 +24,14 @@
     "pestphp/pest": "^3.7",
     "mockery/mockery": "^1.6",
     "php-http/guzzle7-adapter": "^1.1",
-    "vlucas/phpdotenv": "^5.6"
+    "vlucas/phpdotenv": "^5.6",
+    "symfony/cache": "^7.4"
   },
   "require": {
     "php": ">=8.2",
     "php-http/discovery": "^1.20",
     "http-interop/http-factory-guzzle": "^1.2",
-    "ext-openssl": "*",
-    "symfony/cache": "^7.4"
+    "ext-openssl": "*"
   },
   "suggest": {
     "guzzlehttp/guzzle": "Needed for default HTTP client support",
