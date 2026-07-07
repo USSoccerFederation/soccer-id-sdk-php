@@ -12,9 +12,10 @@ class FilesystemCacheItemPool implements CacheItemPoolInterface
 {
     private string $cacheDir;
 
-    public function __construct(string $cacheDir = '/tmp/ussf_soccerid_cache')
-    {
-        $this->cacheDir = $cacheDir;
+    public function __construct(
+        ?string $cacheDir = null
+    ) {
+        $this->cacheDir = $cacheDir ?? sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ussf_soccerid_cache';
         if (!is_dir($this->cacheDir)) {
             mkdir(directory: $this->cacheDir, recursive: true);
         }
