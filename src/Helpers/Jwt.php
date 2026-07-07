@@ -2,6 +2,7 @@
 
 namespace USSoccerFederation\UssfAuthSdkPhp\Helpers;
 
+use USSoccerFederation\UssfAuthSdkPhp\Exceptions\InvalidTokenException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\MalformedTokenException;
 
 class Jwt
@@ -21,6 +22,10 @@ class Jwt
         $header = static::extractClaimsFromPart($parts[0]);
         $payload = static::extractClaimsFromPart($parts[1]);
         $signature = base64_decode(static::normalizeTokenPart($parts[2]), true); // Binary; not JSON encoded
+
+        if ($signature === false) {
+            throw new MalformedTokenException('Signature could not be decoded');
+        }
 
         return [
             'header' => $header,
