@@ -21,7 +21,7 @@ class JwksProvider
 
     protected function getCacheKeyName(): string
     {
-        return self::CACHE_PREFIX . $this->jwksUri;
+        return self::CACHE_PREFIX . '_' . md5($this->jwksUri);
     }
 
     /**
