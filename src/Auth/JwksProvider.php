@@ -4,16 +4,19 @@ namespace USSoccerFederation\UssfAuthSdkPhp\Auth;
 
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Cache\InvalidArgumentException;
+use USSoccerFederation\UssfAuthSdkPhp\Cache\Pool\FilesystemCacheItemPool;
 
 class JwksProvider
 {
     const CACHE_PREFIX = 'ussf_soccerid_jwks';
     const CACHE_TLL_SECONDS = 3600;
+    protected CacheItemPoolInterface $cacheItemPool;
 
     public function __construct(
         protected string $jwksUri,
-        protected ?CacheItemPoolInterface $cacheItemPool = null,
+        ?CacheItemPoolInterface $cacheItemPool = null,
     ) {
+        $this->cacheItemPool = $cacheItemPool ?? new FilesystemCacheItemPool();
     }
 
     protected function getCacheKeyName(): string
