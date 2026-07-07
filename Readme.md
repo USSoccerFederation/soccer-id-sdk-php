@@ -6,10 +6,10 @@
 
 ## Requirements
 
-- PHP 8+
+- PHP 8.2+
 - Any PSR-18 compatible HTTP client, such as Guzzle
 - Client ID & Secret from U.S. Soccer
-- An agreed-upon callback URL
+- An agreed-upon callback URL hosted by your application (for OAuth2 code exchange)
 
 ## About
 
@@ -20,10 +20,13 @@ U.S. Soccer’s user pool.
 
 With this SDK, developers can quickly implement secure login functionality, allowing users of their applications to
 authenticate using their U.S. Soccer credentials. It abstracts the complexities of identity federation, handling
-authentication
-flows, token validation, and user session management with minimal configuration. Whether you're building a membership
-portal, a fan engagement platform, or an internal team tool, this SDK streamlines the authentication process, ensuring a
-secure and consistent login experience.
+authentication flows, token validation, and user session management with minimal configuration. Whether you're building
+a membership portal, a fan engagement platform, or an internal team tool, this SDK streamlines the authentication
+process, ensuring a secure and consistent login experience.
+
+## Upgrading
+
+Looking to upgrade from a previous version? See [Upgrade Guide](Upgrade%20Guide.md) for help.
 
 ## How it works
 
@@ -64,15 +67,16 @@ sequenceDiagram
 ```
 
 1. On your application's login page, provide the user with the option to "Login with U.S. Soccer."
-2. Direct the user to U.S. Soccer's Auth0 Universal Login page.
+2. Direct the user to U.S. Soccer's Universal Login page.
 3. The user will then be prompted to enter their credentials (email and password) if they are not already logged into
-   U.S. Soccer
-4. Auth0 will set cookies on the user's browser, and then...
-5. Redirect the user to the partner app's configured "callback URL"
-6. The partner app will need to perform a "code exchange" with Auth0. On success, the user can be considered
+   U.S. Soccer on the IdP end
+4. The U.S. Soccer login portal will record some temporary data about the user's attempted login, and then...
+5. Redirect the user to the configured "callback URL" for your application with some additional information used for
+   verification in the next step.
+6. Your application will need to perform a "code exchange" with the IdP. On success, the user can be considered
    authenticated
-7. Send a GET request to U.S. Soccer's Identity Service to get the user's profile. This contains additional information
-   about the user. Use info from the Auth0 session + profile to upsert the user into your app's database.
+7. (Optional) Send a GET request to U.S. Soccer's Identity Service to get the user's profile. This contains additional
+   information about the user. Use info from the login session + profile to upsert the user into your app's database.
 8. You _may_ provide updates/changes to the user's profile if needed.
 9. Do any additional steps needed to log the user into your application and set their cookie(s).
 
@@ -98,7 +102,7 @@ USSF_AUTH0_CLIENT_ID=example-client-id-from-ussoccer
 USSF_AUTH0_CLIENT_SECRET=example-client-secret-from-ussoccer
 USSF_AUTH0_DOMAIN=auth-dev.ussoccer.com
 
-# Create your own cookie secret. This is used to encrypt the auth0 cookie.
+# Create your own cookie secret; do not just copy the example below. This is used to encrypt the auth0 cookie.
 # This can be generated using `openssl rand -hex 32` from your shell.
 USSF_AUTH0_COOKIE_SECRET=dd60d4b06b73480172f08741cb00f0c3b70d559965669a808edb1b89c0d30dd5
 
@@ -121,7 +125,10 @@ If you'd like to use `.env` files with your application and have not already inc
 composer require vlucas/phpdotenv
 ```
 
-Now in your application, create an instance of the `UssfAuth` client. For example:
+Next you will set up the object(s) needed to handle authentication. If you only need to log the user in and do not
+need to fetch/update user profiles, see [Manually handling auth](#manually-handling-auth). Otherwise, continue below.
+
+In your application, create an instance of the `UssfAuth` client. For example:
 
 ```php
 <?php
@@ -131,16 +138,19 @@ require 'vendor/autoload.php';
 // Load .env - not needed if using real environment variables
 (Dotenv\Dotenv::createImmutable(__DIR__))->load();
 
-
+$logger = new StdoutLogger(); // Can also point to your PSR/log instance (ex: Monolog)
 $ussfAuth = new UssfAuth(
    auth0: new Auth0Client(
        auth0Configuration: Auth0Configuration::fromEnv(), // Load from environment variables
-       auth0: null, // Can specify our own Auth0 instance; leave `null` to create from `auth0Configuration`
        logger: new StdoutLogger(), // Can specify your own PSR/log-compatible logger, such as Monolog
    ),
-   identity: new IdentityClient(new IdentityClientConfiguration()),
+   identity: new IdentityClient(new IdentityClientConfiguration()), // can be `null` if you don't need profiles
 );
 ```
+
+By default, the auth client will assume using PHP sessions for stateful data (data about the user if they are logged in)
+and encrypted cookies for transient data (temporary data needed only during the login process). To customize this,
+see [Manually handling auth](#manually-handling-auth).
 
 You will use the instance of `UssfAuth` on a few different pages: when the user chooses to log in via U.S. Soccer,
 during the callback phase of authentication, and when logging out. You may want to bind it to a singleton or use a
@@ -154,9 +164,8 @@ $ussfAuth->login();
 ```
 
 That is enough to send the user over to Auth0 to prompt for permission and credentials. Next, we need a landing page
-that Auth0 will redirect them to in order to perform a code exchange. Lets call it `/ussf_callback.php`. It will also
+that Auth0 will redirect them to in order to perform a code exchange. Let's call it `/ussf_callback.php`. It will also
 need access to the `UssfAuth` instance.
-php
 
 ```php
 $session = $ussfAuth->callback(function (Auth0Session $session, ?object $profile) {
@@ -178,18 +187,117 @@ Finally, we need to allow the user to log out. Modify your logout script to perf
 `UssfAuth` instance if the user is logged in via this method. This may look something like:
 
 ```php
-session_destroy(); // Destroy the user's session
-
-if( $user->logged_in_via_ussf ) {
-    $ussfAuth->logout('/index.php'); // Redirect them back to index.php after logout
-} else {
-   // Do your app's log out behaviour here
-   header("Location: /index.php");
-}
+$ussfAuth->logout('/index.php'); // Redirect them back to index.php after logout
 ```
 
 With everything in place, you should now be able to start your app and complete the full login/logout cycle using U.S.
 Soccer Auth.
+
+## Manually handling auth
+
+This section covers using the auth client directly rather than going through the `UssfAuth` class. With this, you
+will be able to handle log in, log out, and sessions however you would like.
+
+```php
+use \USSoccerFederation\UssfAuthSdkPhp\Auth\Store\CookieStore;
+use \USSoccerFederation\UssfAuthSdkPhp\Auth\Store\SessionStore;
+use \USSoccerFederation\UssfAuthSdkPhp\Logging\StdoutLogger;
+use \USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Client;
+// ...
+
+$logger = new StdoutLogger(); // Feel free to substitute your own PSR/log logger instance instead
+
+// All session properties are optional; safe defaults will be chosen for you
+// This will hold information about the user when they are logged in
+$statefulStore = new SessionStore(
+    prefix: 'my_app_auth', // Session fields used by Soccer ID are prefixed with this
+    cookieTtlSeconds: 600, // 10 minutes - or whatever you want
+    cookiePath: '/',
+    cookieDomain: '',
+    cookieSecure: true, // HTTPS only
+    cookieSamesite: 'Strict', // Or use 'Lax' if you prefer
+);
+
+// This holds temporary data during the login process
+$transientStore = new CookieStore(
+    cookieName: 'my_app_cookie',
+    cookieSecret: $_ENV['APP_COOKIE_SECRET'], // Used to encrypt/decrypt the cookie. Keep this secured
+);
+
+$authClient = new Auth0Client(
+    auth0Configuration: Auth0Configuration::fromEnv(), // Load from environment variables
+    statefulStore: $statefulStore,
+    transientStore: $transientStore,
+    logger: $logger,
+);
+```
+
+Initiate login:
+
+```php
+$authClient->login(); // Will redirect browser
+```
+
+After providing credentials, the user will be redirected back to your configured callback endpoint. You will be
+expected to then handle the OAuth callback:
+
+```php
+$authClient->callback(); // Will automatically handle code-exchange for you and set up the user's session
+```
+
+Example of working with user session:
+
+```php
+$session = $authClient->getSession();
+$loggedIn = ($session !== null);
+
+if( $loggedIn ) {
+    $userId = $session->user['sub'];
+    $userEmail = $session->user['email'] ?? null; // Should work if the `email` claim was requested
+    $accessToken = $session->accessToken;
+    $idToken = $session->idToken;
+}
+```
+
+Finally, you can log the user out. You have two options:
+
+1. Log the user out by clearing their session locally. If the user tries to log back in soon, they will not be
+   re-prompted for their credentials.
+2. Log the user out by directing them to the IdP logout endpoint. This will log them out on the remote end as well,
+   requiring them to re-enter their credentials upon logging in again.
+
+```php
+// Option 1: Clear all data on the user (stateful & transient). The user will, effectively, be considered
+// logged out within your application. You may continue to run additional code after calling this.
+$authClient->flushStores();
+
+// Option 2: Log the user out locally & on the IdP end. This redirects the user, so you cannot run additional
+// code after this. After the session has been terminated on the IdP end, the user is redirected back to the
+// given route, or to the configured logout URI otherwise.
+$authClient->logout('/index.php');
+```
+
+## Manually handling identities (Profiles)
+
+```php
+use \USSoccerFederation\UssfAuthSdkPhp\Logging\StdoutLogger;
+use \USSoccerFederation\UssfAuthSdkPhp\Identity\IdentityClient;
+use \USSoccerFederation\UssfAuthSdkPhp\Identity\IdentityClientConfiguration;
+
+$identityClient = new IdentityClient(
+    configuration: IdentityClientConfiguration::fromEnv(), // Or manually configure if you'd like
+    logger: new StdoutLogger()
+);
+
+// The below code assumes the user had already logged into your application and that you have their access_token
+$profile = $identityClient->getProfile($accessToken);
+$fullName = $profile?->first_name . ' ' . $profile?->last_name;
+
+
+$identityClient->updateProfile($accessToken, [
+    'example_property' => 'abc123'
+]);
+```
 
 ## Laravel Integration
 

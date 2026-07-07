@@ -6,8 +6,10 @@ use Closure;
 use JetBrains\PhpStorm\NoReturn;
 use JsonException;
 use Psr\Http\Client\ClientExceptionInterface;
+use Random\RandomException;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Client;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Auth0Session;
+use USSoccerFederation\UssfAuthSdkPhp\Exceptions\MalformedUrlException;
 use USSoccerFederation\UssfAuthSdkPhp\Identity\IdentityClient;
 
 class UssfAuth
@@ -21,6 +23,7 @@ class UssfAuth
     /**
      * Direct the user to USSF's Universal Login page
      * @return void
+     * @throws RandomException
      */
     #[NoReturn]
     public function login(): void
@@ -33,6 +36,7 @@ class UssfAuth
      * This should be done _after_ flushing their session for your app.
      * @param string|null $returnUrl
      * @return void
+     * @throws MalformedUrlException
      */
     #[NoReturn]
     public function logout(?string $returnUrl = null): void
@@ -53,6 +57,7 @@ class UssfAuth
      * @return Auth0Session
      * @throws ClientExceptionInterface
      * @throws JsonException
+     * @throws RandomException
      */
     public function callback(?Closure $callback = null, ?array $profileParams = null): Auth0Session
     {
@@ -78,5 +83,10 @@ class UssfAuth
     public function identity(): ?IdentityClient
     {
         return $this->identity;
+    }
+
+    public function getSession(): ?Auth0Session
+    {
+        return $this->auth0->getSession();
     }
 }

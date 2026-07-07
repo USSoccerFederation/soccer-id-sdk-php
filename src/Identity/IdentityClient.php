@@ -56,7 +56,6 @@ class IdentityClient
         }
 
         $body = $response->getBody()->getContents();
-        $this->logger->debug("Raw body: {$body}");
         try {
             $decoded = json_decode(
                 json: $body,
@@ -67,7 +66,7 @@ class IdentityClient
             throw new ApiException($e->getMessage(), $e->getCode(), $e);
         }
 
-        return $decoded->data ?? null;
+        return $decoded ?? null;
     }
 
     /**
