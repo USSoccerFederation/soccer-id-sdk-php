@@ -57,12 +57,12 @@ class FilesystemCacheItemPool implements CacheItemPoolInterface
             $data = ['value' => $item->get(), 'expires' => null];
         }
 
-        file_put_contents(
+        $success = file_put_contents(
             $this->getFilePath($item->getKey()),
             json_encode($data, flags: JSON_THROW_ON_ERROR)
         );
 
-        return true;
+        return ($success !== false);
     }
 
     public function getItems(array $keys = []): iterable
@@ -77,8 +77,12 @@ class FilesystemCacheItemPool implements CacheItemPoolInterface
 
     public function clear(): bool
     {
-        array_map('unlink', glob("$this->cacheDir/*.cache"));
+        $filesIter = glob("$this->cacheDir/*.cache");
+        if ($filesIter === false) {
+            return false;
+        }
 
+        array_map('unlink', $filesIter);
         return true;
     }
 

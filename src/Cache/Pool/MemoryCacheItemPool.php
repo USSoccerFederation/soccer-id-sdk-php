@@ -52,6 +52,7 @@ class MemoryCacheItemPool implements CacheItemPoolInterface
 
     public function deleteItems(array $keys): bool
     {
+        $this->items = [];
         return true;
     }
 
@@ -62,6 +63,6 @@ class MemoryCacheItemPool implements CacheItemPoolInterface
 
     public function saveDeferred(CacheItemInterface $item): bool
     {
-        return true;
+        return $this->save($item);
     }
 }
