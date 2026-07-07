@@ -12,7 +12,6 @@ use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\MemoryStore;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\CodeException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\FailedCodeExchangeException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\StateException;
-use USSoccerFederation\UssfAuthSdkPhp\Logging\StdoutLogger;
 
 afterEach(function () {
     $_GET = [];
@@ -63,7 +62,7 @@ test('can callback', function () {
     $mockJwksVerifier = Mockery::mock(JwksVerifier::class)->makePartial();
     $mockJwksVerifier->allows('verifyToken')->andReturn(true);
 
-    $logger = new StdoutLogger();
+    $logger = new NullLogger();
     $conf = new Auth0Configuration(
         domain: 'http://127.0.0.1/',
         clientId: 'unittest',
@@ -94,7 +93,7 @@ test('exchange fails if given invalid state', function () {
     $transientStore->set('code_verifier', 'unittest|pkce');
 
     $mockHttpClient = Mockery::mock(ClientInterface::class);
-    $logger = new StdoutLogger();
+    $logger = new NullLogger();
     $conf = new Auth0Configuration(
         domain: 'http://127.0.0.1/',
         clientId: 'unittest',
@@ -121,7 +120,7 @@ test('exchange fails if given empty code', function () {
     $transientStore->set('code_verifier', 'unittest|pkce');
 
     $mockHttpClient = Mockery::mock(ClientInterface::class);
-    $logger = new StdoutLogger();
+    $logger = new NullLogger();
     $conf = new Auth0Configuration(
         domain: 'http://127.0.0.1/',
         clientId: 'unittest',
@@ -178,7 +177,7 @@ test('exchange fails if given invalid nonce', function () {
         return $response;
     });
 
-    $logger = new StdoutLogger();
+    $logger = new NullLogger();
     $conf = new Auth0Configuration(
         domain: 'http://127.0.0.1/',
         clientId: 'unittest',
@@ -205,7 +204,7 @@ test('exchange fails if PKCE is missing', function () {
     // Note: did not set code_verifier
 
     $mockHttpClient = Mockery::mock(ClientInterface::class);
-    $logger = new StdoutLogger();
+    $logger = new NullLogger();
     $conf = new Auth0Configuration(
         domain: 'http://127.0.0.1/',
         clientId: 'unittest',
