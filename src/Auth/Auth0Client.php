@@ -19,7 +19,6 @@ use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\CookieStore;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\SessionStore;
 use USSoccerFederation\UssfAuthSdkPhp\Auth\Store\StoreInterface;
 use USSoccerFederation\UssfAuthSdkPhp\Cache\Pool\FilesystemCacheItemPool;
-use USSoccerFederation\UssfAuthSdkPhp\Cache\Pool\MemoryCacheItemPool;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\CodeException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\FailedCodeExchangeException;
 use USSoccerFederation\UssfAuthSdkPhp\Exceptions\InvalidTokenClaimsException;
@@ -250,7 +249,11 @@ class Auth0Client
         $this->jwksVerifier->verifyToken($decodedBody->id_token);
 
         $this->verifyTokenClaims($accessTokenClaims);
-        $this->verifyTokenClaims($idTokenClaims);
+
+        if (!empty($decodedBody->id_token)) {
+            $this->verifyTokenClaims($idTokenClaims);
+        }
+
 
         $backchannel = hash(
             'sha256',
